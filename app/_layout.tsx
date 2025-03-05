@@ -1,14 +1,15 @@
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import * as eva from '@eva-design/eva';
-import { ApplicationProvider, Layout, Text } from '@ui-kitten/components';
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { ApplicationProvider } from '@ui-kitten/components';
+import { DefaultTheme, DarkTheme } from '@react-navigation/native';
+
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
-
 import { useColorScheme } from '@/components/useColorScheme';
+
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -48,17 +49,20 @@ export default function RootLayout() {
 }
 
 function RootLayoutNav() {
-  const colorScheme = useColorScheme();
+  const colorScheme = useColorScheme(); 
   const theme = colorScheme === 'dark' ? eva.dark : eva.light;
 
   return (
     <ApplicationProvider {...eva} theme={theme}>
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
+      <Stack screenOptions={{
+          headerStyle: {
+            backgroundColor: colorScheme === 'dark' ? '#000' : '#fff', // Navbar color
+          },
+          headerTintColor: colorScheme === 'dark' ? '#fff' : '#000', // Navbar text color
+        }}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
       </Stack>
-    </ThemeProvider>
-  </ApplicationProvider>
+    </ApplicationProvider>
   );
 }

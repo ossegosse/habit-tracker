@@ -8,12 +8,12 @@ import { useColorScheme } from "@/components/useColorScheme";
 import { useClientOnlyValue } from "@/components/useClientOnlyValue";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 
-function TabBarIcon(props: {
+/* function TabBarIcon(props: {
   name: React.ComponentProps<typeof FontAwesome>["name"];
   color: string;
 }) {
   return <FontAwesome size={28} style={{ marginBottom: -3 }} {...props} />;
-}
+} */
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
