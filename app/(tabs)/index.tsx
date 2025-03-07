@@ -1,12 +1,10 @@
 import { StyleSheet } from 'react-native';
 import { Text, View } from '@/components/Themed';
-import { TopTabs } from '@/components/TopTabs';
 
 export default function TabOneScreen() {
   return (
     <View style={styles.container}>
-      <TopTabs></TopTabs>
-      
+      <Text style={styles.title}>HEJ</Text>
     </View>
   );
 }
@@ -14,9 +12,8 @@ export default function TabOneScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: 'center',
     padding: 20,
-    
+    gap: 20,
   },
   title: {
     fontSize: 20,
