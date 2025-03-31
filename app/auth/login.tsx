@@ -57,7 +57,7 @@ return (
       </TouchableOpacity>
       
       <TouchableOpacity
-        onPress={() => router.push('./auth/register')}
+        onPress={() => router.push('/auth/register')}
       >
         <Text style={styles.link}>Don't have an account? Sign up</Text>
       </TouchableOpacity>

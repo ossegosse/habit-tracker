@@ -53,7 +53,7 @@ export default function TabLayout() {
         }}
       />
 
-      <Tabs.Screen
+      {/* <Tabs.Screen
         name="create-habit"
         options={{
           title: "Create Habit",
@@ -64,22 +64,8 @@ export default function TabLayout() {
               color="green"
             />
           ),
-          /* tabBarButton: (props) => {
-            return (
-              <Pressable {...props} onPress={() => router.push("/modal")}>
-                <MaterialCommunityIcons
-                  name="plus-circle"
-                  size={40}
-                  color="green"
-                  style={{
-                    opacity: props.accessibilityState?.selected ? 0.5 : 1,
-                  }}
-                />
-              </Pressable>
-            );
-          }, */
         }}
-      />
+      /> */}
 
       <Tabs.Screen
         name="statistics"
@@ -90,6 +76,17 @@ export default function TabLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="user-profile"
+        options={{
+          title: "Profile",
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="person-outline" size={30} color="green" />
+          ),
+        }}
+      />
     </Tabs>
+
+    
   );
 }
