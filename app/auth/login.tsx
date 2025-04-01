@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { router } from 'expo-router';
-import { StyleSheet, Text, TextInput, TouchableOpacity, View, Alert } from 'react-native';
+import { StyleSheet, Text, TextInput, TouchableOpacity, View, Alert, Image } from 'react-native';
 import { loginUser } from "@/services/firestore/auth-service";
 
 export default function Login() {
@@ -27,6 +27,7 @@ export default function Login() {
 
 return (
     <View style={styles.container}>
+      <Image style={styles.logo} source={require('@/assets/images/habittracker.png')} />
       <Text style={styles.title}>Login to Habit Tracker</Text>
       
       <TextInput
@@ -70,6 +71,12 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
     justifyContent: 'center',
+  },
+  logo: {
+    width: 300,
+    height: 300,
+    alignSelf: 'center',
+    color: 'white',
   },
   title: {
     fontSize: 24,
