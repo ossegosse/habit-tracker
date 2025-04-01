@@ -1,3 +1,4 @@
+import { ComponentProps } from 'react';
 import { db } from '../../config/firebase';
 import { auth } from '../../config/firebase';
 import { 
@@ -12,6 +13,7 @@ import {
   getDoc,
   Timestamp 
 } from 'firebase/firestore';
+import { Ionicons } from '@expo/vector-icons';
 
 export type Habit = {
     id?: string;
@@ -20,6 +22,8 @@ export type Habit = {
     frequency: string[];
     createdAt?: Timestamp;
     userId?: string;
+    category: string;
+    icon: ComponentProps<typeof Ionicons>["name"]
 }
 
 // Add a new habit to the database

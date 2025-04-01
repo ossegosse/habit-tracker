@@ -42,7 +42,14 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Habits",
+          title: "My Habits",
+          headerStyle: {
+            backgroundColor: 'green',
+          },
+          headerTitleStyle: {
+            fontWeight: 'bold',
+            fontSize: 20,
+          },
           tabBarIcon: ({ color }) => (
             <MaterialCommunityIcons
               name="format-list-bulleted"
@@ -71,6 +78,13 @@ export default function TabLayout() {
         name="statistics"
         options={{
           title: "Statistics",
+          headerStyle: {
+            backgroundColor: 'green',
+          },
+          headerTitleStyle: {
+            fontWeight: 'bold',
+            fontSize: 20,
+          },
           tabBarIcon: ({ color }) => (
             <Ionicons name="stats-chart-outline" size={30} color="green" />
           ),
@@ -80,6 +94,13 @@ export default function TabLayout() {
         name="user-profile"
         options={{
           title: "Profile",
+          headerStyle: {
+            backgroundColor: 'green',
+          },
+          headerTitleStyle: {
+            fontWeight: 'bold',
+            fontSize: 20,
+          },
           tabBarIcon: ({ color }) => (
             <Ionicons name="person-outline" size={30} color="green" />
           ),
