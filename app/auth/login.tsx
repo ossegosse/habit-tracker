@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { router } from 'expo-router';
-import { StyleSheet, Text, TextInput, TouchableOpacity, View, Alert, Image } from 'react-native';
+import { StyleSheet, Text, TextInput, TouchableOpacity, View, Alert, Image, ScrollView } from 'react-native';
 import { loginUser } from "@/services/firestore/auth-service";
 
 export default function Login() {
@@ -26,9 +26,9 @@ export default function Login() {
     };
 
 return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container}>
       <Image style={styles.logo} source={require('@/assets/images/habittracker.png')} />
-      <Text style={styles.title}>Login to Habit Tracker</Text>
+      <Text style={styles.title}>Login</Text>
       
       <TextInput
         style={styles.input}
@@ -53,7 +53,7 @@ return (
         disabled={isLoading}
       >
         <Text style={styles.buttonText}>
-          {isLoading ? 'Logging in...' : 'Login'}
+          {isLoading ? 'Logging in...' : 'Submit'}
         </Text>
       </TouchableOpacity>
       
@@ -62,7 +62,7 @@ return (
       >
         <Text style={styles.link}>Don't have an account? Sign up</Text>
       </TouchableOpacity>
-    </View>
+    </ScrollView>
   );
 }
 
@@ -70,18 +70,19 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    justifyContent: 'center',
   },
   logo: {
     width: 300,
     height: 200,
     alignSelf: 'center',
     color: 'white',
+    marginTop: 40,
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 20,
+    marginTop: 100,
     textAlign: 'center',
     color: 'white',
   },
