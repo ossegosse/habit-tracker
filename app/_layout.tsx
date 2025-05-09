@@ -11,6 +11,7 @@ import { useEffect } from "react";
 import "react-native-reanimated";
 import { useColorScheme } from "@/components/useColorScheme";
 import { AuthProvider } from "@/services/auth-provider";
+import { Provider as PaperProvider, MD3LightTheme as PaperLightTheme, MD3DarkTheme as PaperDarkTheme } from 'react-native-paper';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -51,10 +52,13 @@ export default function RootLayout() {
 
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
+  const paperTheme = colorScheme === "dark" ? PaperDarkTheme : PaperLightTheme;
+  const navTheme = colorScheme === "dark" ? DarkTheme : DefaultTheme;
 
   return (
     <AuthProvider>
-      <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+      <PaperProvider theme={paperTheme}>  
+      <ThemeProvider value={navTheme}>
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="create-habit-modal" options={{ presentation: "modal", headerShown: false}} />
@@ -74,6 +78,7 @@ function RootLayoutNav() {
           />
         </Stack>
       </ThemeProvider>
+      </PaperProvider>
     </AuthProvider>
   );
 }

@@ -5,9 +5,12 @@ import { ExpoConfig } from 'expo/config';
 const config: ExpoConfig = {
   name: "HabitTracker",
   slug: "habit-tracker",
+  scheme: "habittracker",
   // ... other expo config settings
 
-  // Add your extra config here
+  plugins: [
+    "expo-router"
+  ],
   extra: {
     firebaseApiKey: process.env.FIREBASE_API_KEY,
     firebaseAuthDomain: process.env.FIREBASE_AUTH_DOMAIN,
