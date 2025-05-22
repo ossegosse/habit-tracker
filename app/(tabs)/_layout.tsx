@@ -9,15 +9,9 @@ import { useClientOnlyValue } from "@/components/useClientOnlyValue";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAuth } from "@/services/auth-provider";
 
-function TabBarIcon(props: {
-  name: React.ComponentProps<typeof FontAwesome>["name"];
-  color: string;
-}) {
-  return <FontAwesome size={28} style={{ marginBottom: -3 }} {...props} />;
-}
-
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const themeColors = Colors[colorScheme ?? "light"];
   const { user, isLoading } = useAuth();
 
   useEffect(() => {
@@ -33,9 +27,21 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
-        // Disable the static render of the header on web
-        // to prevent a hydration error in React Navigation v6.
+        tabBarActiveTintColor: themeColors.tabIconSelected,
+        tabBarInactiveTintColor: themeColors.tabIconDefault,
+        tabBarStyle: {
+          backgroundColor: themeColors.navBackground,
+          borderTopColor: themeColors.border,
+        },
+        headerStyle: {
+          backgroundColor: themeColors.header,
+        },
+        headerTitleStyle: {
+          fontWeight: 'bold',
+          fontSize: 20,
+          color: themeColors.text,
+        },
+        headerTintColor: themeColors.text,
         headerShown: useClientOnlyValue(false, true),
       }}
     >
@@ -43,50 +49,21 @@ export default function TabLayout() {
         name="index"
         options={{
           title: "My Habits",
-          headerStyle: {
-            backgroundColor: 'green',
-          },
-          headerTitleStyle: {
-            fontWeight: 'bold',
-            fontSize: 20,
-          },
           tabBarIcon: ({ color }) => (
             <MaterialCommunityIcons
               name="format-list-bulleted"
               size={30}
-              color="green"
+              color={color}
             />
           ),
         }}
       />
-
-      {/* <Tabs.Screen
-        name="create-habit"
-        options={{
-          title: "Create Habit",
-          tabBarIcon: ({ color }) => (
-            <MaterialCommunityIcons
-              name="plus-circle"
-              size={30}
-              color="green"
-            />
-          ),
-        }}
-      /> */}
-
       <Tabs.Screen
         name="statistics"
         options={{
           title: "Statistics",
-          headerStyle: {
-            backgroundColor: 'green',
-          },
-          headerTitleStyle: {
-            fontWeight: 'bold',
-            fontSize: 20,
-          },
           tabBarIcon: ({ color }) => (
-            <Ionicons name="stats-chart-outline" size={30} color="green" />
+            <Ionicons name="stats-chart-outline" size={30} color={color} />
           ),
         }}
       />
@@ -94,20 +71,11 @@ export default function TabLayout() {
         name="user-profile"
         options={{
           title: "Profile",
-          headerStyle: {
-            backgroundColor: 'green',
-          },
-          headerTitleStyle: {
-            fontWeight: 'bold',
-            fontSize: 20,
-          },
           tabBarIcon: ({ color }) => (
-            <Ionicons name="person-outline" size={30} color="green" />
+            <Ionicons name="person-outline" size={30} color={color} />
           ),
         }}
       />
     </Tabs>
-
-    
   );
 }

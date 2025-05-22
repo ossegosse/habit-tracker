@@ -2,8 +2,8 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  ScrollView,
   StyleSheet,
-  TouchableOpacity,
 } from "react-native";
 import { Text, View } from "@/components/Themed";
 import { Link } from "expo-router";
@@ -11,14 +11,42 @@ import {
   getUserHabits,
   Habit,
   deleteHabit,
+  completeHabit,
 } from "@/services/firestore/database-service";
 import { useEffect, useState } from "react";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { Card, Text as PaperText, IconButton } from "react-native-paper";
+import {
+  Card,
+  Text as PaperText,
+  IconButton,
+  ProgressBar,
+  Button,
+} from "react-native-paper";
+import Colors from "@/constants/Colors";
+import { useColorScheme } from "@/components/useColorScheme";
+import dayjs from "dayjs";
+
+const getProgress = (habit: Habit) => {
+  if (!habit.completions || !habit.scheduledDates) return 0;
+  const completed = habit.scheduledDates.filter(date =>
+    habit.completions.some((c) => c.date === date)
+  ).length;
+  if (habit.scheduledDates.length === 0) return 0;
+  const progress = completed / habit.scheduledDates.length;
+  return Math.max(0, Math.min(1, progress)); // Clamp between 0 and 1
+};
 
 export default function HabitScreen() {
   const [habits, setHabits] = useState<Habit[]>([]);
   const [loading, setLoading] = useState(true);
+  const colorScheme = useColorScheme();
+  const themeColors = Colors[colorScheme];
+  const today = dayjs().format("YYYY-MM-DD");
+  const [selectedTab, setSelectedTab] = useState<"daily" | "all">("daily");
+  const filteredHabits =
+    selectedTab === "daily"
+      ? habits.filter((habit) => habit.scheduledDates?.includes(today))
+      : habits;
 
   const loadHabits = async () => {
     try {
@@ -35,6 +63,18 @@ export default function HabitScreen() {
   useEffect(() => {
     loadHabits();
   }, []);
+
+  const handleComplete = async (habitId: string) => {
+    try {
+      await completeHabit(habitId, today);
+      // Refresh habits after marking as complete
+      const userHabits = await getUserHabits();
+      setHabits(userHabits);
+    } catch (error) {
+      console.error("Error completing habit:", error);
+      Alert.alert("Error", "Failed to mark habit as complete.");
+    }
+  };
 
   const handleDeleteHabit = async (habitId: string) => {
     Alert.alert("Delete Habit", "Are you sure you want to delete this habit?", [
@@ -63,103 +103,161 @@ export default function HabitScreen() {
 
   if (loading) {
     return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color="green" />
+      <View
+        style={[styles.centered, { backgroundColor: themeColors.background }]}
+      >
+        <ActivityIndicator size="large" color={themeColors.tint} />
       </View>
     );
   }
 
   if (habits.length === 0) {
     return (
-      <View style={styles.centered}>
-        <Text style={styles.emptyText}>You don't have any habits yet.</Text>
+      <View
+        style={[styles.centered, { backgroundColor: themeColors.background }]}
+      >
+        <Text style={[styles.emptyText, { color: themeColors.placeholder }]}>
+          You don't have any habits yet.
+        </Text>
         <Link href="/create-habit-modal" style={styles.createButton}>
-          <MaterialCommunityIcons name="plus-circle" size={50} color="green" />
+          <MaterialCommunityIcons
+            name="plus-circle"
+            size={50}
+            color={themeColors.success}
+          />
         </Link>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View
+      style={[styles.container, { backgroundColor: themeColors.background }]}
+    >
+      <View style={{ flexDirection: "row", marginBottom: 16 }}>
+        <Button
+          mode={selectedTab === "daily" ? "contained" : "outlined"}
+          onPress={() => setSelectedTab("daily")}
+          style={{ flex: 1, marginRight: 4, height: 40 }}
+          buttonColor={
+            selectedTab === "daily" ? themeColors.tint : themeColors.card
+          }
+          textColor={
+            selectedTab === "daily"
+              ? themeColors.inputBackground
+              : themeColors.text
+          }
+        >
+          Today
+        </Button>
+        <Button
+          mode={selectedTab === "all" ? "contained" : "outlined"}
+          onPress={() => setSelectedTab("all")}
+          style={{ flex: 1, marginLeft: 4, height: 40 }}
+          buttonColor={
+            selectedTab === "all" ? themeColors.tint : themeColors.card
+          }
+          textColor={
+            selectedTab === "all"
+              ? themeColors.inputBackground
+              : themeColors.text
+          }
+        >
+          All Habits
+        </Button>
+      </View>
       <FlatList
-        data={habits}
+        data={filteredHabits}
         keyExtractor={(item) => item.id || Math.random().toString()}
-        renderItem={({ item }) => (
-          <Card style={{ marginBottom: 12 }}>
-            <Card.Title
-              title={item.title}
-              left={(props) => (
-                <Ionicons
-                  name={item.icon}
-                  size={36}
-                  color={"#344e41"}
-                  style={{ marginRight: 8 }}
-                />
-              )}
-              right={(props) => (
-                <IconButton
-                  {...props}
-                  icon="delete-outline"
-                  iconColor="red"
-                  onPress={() => item.id && handleDeleteHabit(item.id)}
-                />
-              )}
-            />
-            <Card.Content>
-              <PaperText variant="bodyMedium" style={{ marginBottom: 8 }}>
-                {item.description}
-              </PaperText>
-              <View
-                style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                }}
-              >
-                {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(
-                  (day, index) => {
-                    const fullDay = [
-                      "Monday",
-                      "Tuesday",
-                      "Wednesday",
-                      "Thursday",
-                      "Friday",
-                      "Saturday",
-                      "Sunday",
-                    ][index];
-                    const isSelected = item.frequency.includes(fullDay);
-                    return (
-                      <View
-                        key={day}
-                        style={{
-                          width: 32,
-                          height: 32,
-                          borderRadius: 16,
-                          backgroundColor: isSelected ? "#588157" : "#f0f0f0",
-                          justifyContent: "center",
-                          alignItems: "center",
-                          marginHorizontal: 1,
-                        }}
-                      >
-                        <PaperText
-                          style={{
-                            color: isSelected ? "white" : "#666",
-                            fontSize: 12,
-                          }}
-                        >
-                          {day}
-                        </PaperText>
-                      </View>
-                    );
-                  }
+        renderItem={({ item }) => {
+          const progress = getProgress(item);
+          const isCompletedToday = item.completions?.some(
+            (c) => c.date === today
+          );
+
+          return (
+            <Card
+              style={[
+                styles.habitCard,
+                {
+                  backgroundColor: themeColors.card,
+                  borderColor: themeColors.border,
+                  borderWidth: 1,
+                  shadowColor: themeColors.tint,
+                },
+              ]}
+              elevation={2}
+              mode="elevated"
+            >
+              <Card.Title
+                title={item.title}
+                titleStyle={{ color: themeColors.text, fontWeight: "bold" }}
+                left={(props) => (
+                  <Ionicons
+                    name={item.icon}
+                    size={28}
+                    color={themeColors.tint}
+                    style={{ marginRight: 8 }}
+                  />
                 )}
-              </View>
-            </Card.Content>
-          </Card>
-        )}
+                right={(props) => (
+                  <IconButton
+                    {...props}
+                    icon="delete-outline"
+                    iconColor={themeColors.error}
+                    onPress={() => item.id && handleDeleteHabit(item.id)}
+                  />
+                )}
+                style={{
+                  backgroundColor: themeColors.header,
+                  borderTopLeftRadius: 10,
+                  borderTopRightRadius: 10,
+                  minHeight: 36,
+                }}
+              />
+              <Card.Content>
+                <PaperText style={{ marginBottom: 8, color: themeColors.text }}>
+                  {item.description}
+                </PaperText>
+                <View style={styles.progressRow}>
+                  <ProgressBar
+                    progress={progress}
+                    color={themeColors.success}
+                    style={{
+                      maxWidth: "100%",
+                      flex: 1,
+                      height: 8,
+                      borderRadius: 4,
+                      backgroundColor: themeColors.inputBackground,
+                      marginRight: 8,
+                    }}
+                  />
+                  <IconButton
+                    icon={
+                      isCompletedToday ? "check-circle" : "check-circle-outline"
+                    }
+                    iconColor={
+                      isCompletedToday
+                        ? themeColors.success
+                        : themeColors.placeholder
+                    }
+                    disabled={isCompletedToday}
+                    onPress={() => handleComplete(item.id)}
+                    size={24}
+                    style={{ margin: 0 }}
+                  />
+                </View>
+              </Card.Content>
+            </Card>
+          );
+        }}
       />
       <Link href="/create-habit-modal" style={styles.createButton}>
-        <MaterialCommunityIcons name="plus-circle" size={50} color="green" />
+        <MaterialCommunityIcons
+          name="plus-circle"
+          size={50}
+          color={themeColors.success}
+        />
       </Link>
     </View>
   );
@@ -169,7 +267,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
-    backgroundColor: "#003049",
   },
   createButton: {
     flex: 1,
@@ -186,7 +283,6 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: "#666",
     textAlign: "center",
     marginBottom: 20,
   },
@@ -195,15 +291,19 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   habitCard: {
-    backgroundColor: "#669bbc",
-    borderRadius: 10,
-    padding: 16,
-    marginBottom: 12,
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.41,
+  borderRadius: 10,
+  paddingVertical: 8,
+  paddingHorizontal: 8,
+  marginBottom: 12,
+  elevation: 2,
+  shadowOffset: { width: 0, height: 1 },
+  shadowOpacity: 0.2,
+  shadowRadius: 1.41,
+},
+   progressRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 8,
   },
   habitHeader: {
     flexDirection: "row",
@@ -217,7 +317,6 @@ const styles = StyleSheet.create({
   },
   habitDescription: {
     fontSize: 14,
-    color: "#666",
     marginBottom: 12,
   },
   habitFrequency: {
@@ -228,18 +327,8 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: "#f0f0f0",
     justifyContent: "center",
     alignItems: "center",
-  },
-  dayIndicatorSelected: {
-    backgroundColor: "green",
-  },
-  dayIndicatorText: {
-    fontSize: 12,
-    color: "#666",
-  },
-  dayIndicatorTextSelected: {
-    color: "white",
+    marginHorizontal: 1,
   },
 });

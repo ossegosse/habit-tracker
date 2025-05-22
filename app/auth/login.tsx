@@ -1,12 +1,66 @@
 import React, { useState } from 'react';
 import { router } from 'expo-router';
-import { StyleSheet, Text, TextInput, TouchableOpacity, View, Alert, Image, ScrollView } from 'react-native';
+import { StyleSheet, Text, TextInput, TouchableOpacity, View, Alert, Image, ScrollView, } from 'react-native';
 import { loginUser } from "@/services/firestore/auth-service";
+import Colors from '@/constants/Colors';
+import { useColorScheme } from "@/components/useColorScheme";
 
 export default function Login() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const colorScheme = useColorScheme();
+    const themeColors = Colors[colorScheme];
+
+    const styles = StyleSheet.create({
+      container: {
+        flex: 1,
+        padding: 20,
+        backgroundColor: themeColors.background,
+      },
+      logo: {
+        width: 300,
+        height: 200,
+        alignSelf: 'center',
+        marginTop: 40,
+        color: themeColors.tint,
+      },
+      title: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        marginBottom: 20,
+        marginTop: 100,
+        textAlign: 'center',
+        color: themeColors.text,
+      },
+      input: {
+        borderWidth: 1,
+        borderColor: themeColors.tabIconDefault,
+        padding: 10,
+        fontSize: 16,
+        borderRadius: 6,
+        marginBottom: 12,
+        color: themeColors.text,
+        backgroundColor: themeColors.background,
+      },
+      button: {
+        backgroundColor: themeColors.tint,
+        padding: 15,
+        borderRadius: 6,
+        alignItems: 'center',
+        marginTop: 10,
+      },
+      buttonText: {
+        color: 'white',
+        fontSize: 16,
+        fontWeight: 'bold',
+      },
+      link: {
+        color: themeColors.tint,
+        textAlign: 'center',
+        marginTop: 20,
+      }
+    });
 
     const handleLogin = async () => {
         if (!email || !password) {
@@ -66,50 +120,3 @@ return (
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-  },
-  logo: {
-    width: 300,
-    height: 200,
-    alignSelf: 'center',
-    color: 'white',
-    marginTop: 40,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    marginTop: 100,
-    textAlign: 'center',
-    color: 'white',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    padding: 10,
-    fontSize: 16,
-    borderRadius: 6,
-    marginBottom: 12,
-    color: 'white',
-  },
-  button: {
-    backgroundColor: 'green',
-    padding: 15,
-    borderRadius: 6,
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  buttonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  link: {
-    color: 'green',
-    textAlign: 'center',
-    marginTop: 20,
-  }
-});

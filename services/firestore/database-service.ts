@@ -19,11 +19,13 @@ export type Habit = {
     id?: string;
     title: string;
     description: string;
-    frequency: string[];
+    scheduledDates?: string[];
+    timers?: { start: string; end: string; intervalMinutes: number };
     createdAt?: Timestamp;
     userId?: string;
     category: string;
-    icon: ComponentProps<typeof Ionicons>["name"]
+    icon: ComponentProps<typeof Ionicons>["name"];
+    completions?: { date: string; time?: string }[];
 }
 
 // Add a new habit to the database
@@ -34,9 +36,28 @@ export const addHabit = async (habitData: Omit<Habit, 'id' | 'userId' | 'created
     return await addDoc(collection(db, 'habits'), {
         ...habitData,
         userId: user.uid,
-        createdAt: Timestamp.now()
+        createdAt: Timestamp.now(),
+        completions: [],
     });
 }
+
+// Marks a habit as completed
+export const completeHabit = async (habitId: string, date: string) => {
+    const habitRef = doc(db, 'habits', habitId);
+    const habitDoc = await getDoc(habitRef);
+
+    if (!habitDoc.exists()) throw new Error('Habit not found');
+
+    const data = habitDoc.data();
+    // completions should be an array of objects
+    const completions: { date: string; time?: string }[] = data.completions || [];
+
+    // Avoid duplicates
+    if (!completions.some(c => c.date === date)) {
+        completions.push({ date });
+        await updateDoc(habitRef, { completions });
+    }
+};
 
 // Get all habits for the current user
 export const getUserHabits = async (): Promise<Habit[]> => {

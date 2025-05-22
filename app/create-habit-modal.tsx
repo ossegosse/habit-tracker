@@ -1,19 +1,18 @@
-import { Alert, ScrollView, StyleSheet, TextInput, TouchableOpacity } from "react-native";
+import {
+  Alert,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+} from "react-native";
 import { Text, View } from "@/components/Themed";
 import { addHabit } from "@/services/firestore/database-service";
 import { useState, ComponentProps } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
+import { Calendar } from "react-native-calendars";
+import dayjs from "dayjs";
 
-const daysOfWeek = [
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
-  "Sunday",
-];
 const categories = [
   "Health",
   "Fitness",
@@ -25,7 +24,7 @@ const categories = [
 
 type IconName = ComponentProps<typeof Ionicons>["name"];
 
-const categoryIcons: {[key: string]: IconName} = {
+const categoryIcons: { [key: string]: IconName } = {
   Health: "heart",
   Fitness: "barbell",
   Productivity: "checkmark-circle",
@@ -37,24 +36,16 @@ const categoryIcons: {[key: string]: IconName} = {
 export default function ModalScreen() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [selectedDays, setSelectedDays] = useState<string[]>([]);
+  const [selectedDates, setSelectedDates] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState("Health");
   const [isLoading, setIsLoading] = useState(false);
-
-  const toggleDaySelection = (day: string) => {
-    if (selectedDays.includes(day)) {
-      setSelectedDays(selectedDays.filter((d) => d !== day));
-    } else {
-      setSelectedDays([...selectedDays, day]);
-    }
-  };
 
   const handleCreateHabit = async () => {
     if (!title) {
       Alert.alert("Error", "Please enter a title for your habit");
       return;
     }
-    if (selectedDays.length === 0) {
+    if (selectedDates.length === 0) {
       Alert.alert("Error", "Please select at least one day of the week");
       return;
     }
@@ -63,7 +54,7 @@ export default function ModalScreen() {
       await addHabit({
         title,
         description,
-        frequency: selectedDays,
+        scheduledDates: selectedDates,
         category: selectedCategory,
         icon: categoryIcons[selectedCategory],
       });
@@ -89,81 +80,74 @@ export default function ModalScreen() {
   return (
     <View style={styles.container}>
       <ScrollView>
-      <Text style={styles.title}>Create new habit</Text>
-      <TextInput
-        style={styles.input}
-        value={title}
-        onChangeText={setTitle}
-        placeholder="What habit do you want to create?"
-        placeholderTextColor={"#888"}
-      />
+        <Text style={styles.title}>Create new habit</Text>
+        <TextInput
+          style={styles.input}
+          value={title}
+          onChangeText={setTitle}
+          placeholder="What habit do you want to create?"
+          placeholderTextColor={"#888"}
+        />
 
-      <Text style={styles.label}>Description (Optional)</Text>
-      <TextInput
-        style={styles.input}
-        value={description}
-        onChangeText={setDescription}
-        placeholder="Describe your habit"
-        placeholderTextColor={"#888"}
-        multiline
-        numberOfLines={4}
-      />
+        <Text style={styles.label}>Description (Optional)</Text>
+        <TextInput
+          style={styles.input}
+          value={description}
+          onChangeText={setDescription}
+          placeholder="Describe your habit"
+          placeholderTextColor={"#888"}
+          multiline
+          numberOfLines={4}
+        />
 
-      <Text style={styles.label}> Category</Text>
-      <View style={styles.categoriesContainer}>
-        {categories.map((category) => (
-          <TouchableOpacity
-            key={category}
-            style={[
-              styles.categoryButton,
-              selectedCategory === category && styles.categoryButtonSelected,
-            ]}
-            onPress={() => setSelectedCategory(category)}
-          >
-            <Ionicons
-              name={categoryIcons[category]}
-              size={20}
-              color={selectedCategory === category ? "white" : "#333"}
-            />
-            <Text
+        <Text style={styles.label}> Category</Text>
+        <View style={styles.categoriesContainer}>
+          {categories.map((category) => (
+            <TouchableOpacity
+              key={category}
               style={[
-                styles.categoryButtonText,
-                selectedCategory === category &&
-                  styles.categoryButtonTextSelected,
+                styles.categoryButton,
+                selectedCategory === category && styles.categoryButtonSelected,
               ]}
+              onPress={() => setSelectedCategory(category)}
             >
-              {category}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+              <Ionicons
+                name={categoryIcons[category]}
+                size={20}
+                color={selectedCategory === category ? "white" : "#333"}
+              />
+              <Text
+                style={[
+                  styles.categoryButtonText,
+                  selectedCategory === category &&
+                    styles.categoryButtonTextSelected,
+                ]}
+              >
+                {category}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
 
-      <Text style={styles.label}>Frequency</Text>
-      <Text style={styles.sublabel}>
-        On which days do you want to perform this habit?
-      </Text>
+        <Text style={styles.label}>Dates</Text>
+        <Text style={styles.sublabel}>
+          On which dates do you want to perform this habit?
+        </Text>
 
-      <View style={styles.daysContainer}>
-        {daysOfWeek.map((day) => (
-          <TouchableOpacity
-            key={day}
-            style={[
-              styles.dayButton,
-              selectedDays.includes(day) && styles.dayButtonSelected,
-            ]}
-            onPress={() => toggleDaySelection(day)}
-          >
-            <Text
-              style={[
-                styles.dayButtonText,
-                selectedDays.includes(day) && styles.dayButtonTextSelected,
-              ]}
-            >
-              {day.substring(0, 3)}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+        <Calendar
+          onDayPress={(day) => {
+            const date = day.dateString;
+            setSelectedDates((prev) =>
+              prev.includes(date)
+                ? prev.filter((d) => d !== date)
+                : [...prev, date]
+            );
+          }}
+          markedDates={selectedDates.reduce((acc, date) => {
+            acc[date] = { selected: true, selectedColor: "green" };
+            return acc;
+          }, {} as Record<string, any>)}
+        />
       </ScrollView>
 
       <TouchableOpacity
@@ -184,11 +168,6 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
     backgroundColor: "#f9f9f9",
-    
-    /* height: '100%',
-    gap: 15,
-    justifyContent: 'flex-start', */
-    /*  justifyContent: 'space-between', */
   },
   title: {
     fontSize: 20,
