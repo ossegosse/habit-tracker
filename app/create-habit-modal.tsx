@@ -11,7 +11,6 @@ import { useState, ComponentProps } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { Calendar } from "react-native-calendars";
-import dayjs from "dayjs";
 
 const categories = [
   "Health",

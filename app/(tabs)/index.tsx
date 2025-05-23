@@ -1,44 +1,18 @@
-import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  ScrollView,
-  StyleSheet,
-} from "react-native";
+import { ActivityIndicator, Alert, FlatList, StyleSheet } from "react-native";
 import { Text, View } from "@/components/Themed";
 import { Link } from "expo-router";
-import {
-  getUserHabits,
-  Habit,
-  deleteHabit,
-  completeHabit,
-} from "@/services/firestore/database-service";
-import { useEffect, useState } from "react";
+import { Habit, deleteHabit, completeHabit } from "@/services/firestore/database-service";
+import { useUserHabits } from "@/hooks/useUserHabits";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import {
-  Card,
-  Text as PaperText,
-  IconButton,
-  ProgressBar,
-  Button,
-} from "react-native-paper";
+import { Card, Text as PaperText, IconButton, ProgressBar, Button } from "react-native-paper";
 import Colors from "@/constants/Colors";
 import { useColorScheme } from "@/components/useColorScheme";
 import dayjs from "dayjs";
-
-const getProgress = (habit: Habit) => {
-  if (!habit.completions || !habit.scheduledDates) return 0;
-  const completed = habit.scheduledDates.filter(date =>
-    habit.completions.some((c) => c.date === date)
-  ).length;
-  if (habit.scheduledDates.length === 0) return 0;
-  const progress = completed / habit.scheduledDates.length;
-  return Math.max(0, Math.min(1, progress)); // Clamp between 0 and 1
-};
+import { getProgress } from "@/utils/habitUtils";
+import { useState } from "react";
 
 export default function HabitScreen() {
-  const [habits, setHabits] = useState<Habit[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { habits, loading, setHabits } = useUserHabits();
   const colorScheme = useColorScheme();
   const themeColors = Colors[colorScheme];
   const today = dayjs().format("YYYY-MM-DD");
@@ -48,28 +22,22 @@ export default function HabitScreen() {
       ? habits.filter((habit) => habit.scheduledDates?.includes(today))
       : habits;
 
-  const loadHabits = async () => {
-    try {
-      const userHabits = await getUserHabits();
-      setHabits(userHabits);
-    } catch (error) {
-      console.error("Error loading habits:", error);
-      Alert.alert("Error", "Failed to load habits. Please try again later.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadHabits();
-  }, []);
-
   const handleComplete = async (habitId: string) => {
     try {
       await completeHabit(habitId, today);
-      // Refresh habits after marking as complete
-      const userHabits = await getUserHabits();
-      setHabits(userHabits);
+      setHabits((prev) =>
+      prev.map((habit) =>
+        habit.id === habitId
+          ? {
+              ...habit,
+              completions: [
+                ...(habit.completions ?? []),
+                { date: today },
+              ],
+            }
+          : habit
+      )
+    );
     } catch (error) {
       console.error("Error completing habit:", error);
       Alert.alert("Error", "Failed to mark habit as complete.");
@@ -103,10 +71,8 @@ export default function HabitScreen() {
 
   if (loading) {
     return (
-      <View
-        style={[styles.centered, { backgroundColor: themeColors.background }]}
-      >
-        <ActivityIndicator size="large" color={themeColors.tint} />
+      <View style={styles.container}>
+        <ActivityIndicator />
       </View>
     );
   }
@@ -138,7 +104,7 @@ export default function HabitScreen() {
         <Button
           mode={selectedTab === "daily" ? "contained" : "outlined"}
           onPress={() => setSelectedTab("daily")}
-          style={{ flex: 1, marginRight: 4, height: 40 }}
+          style={{ flex: 1, marginRight: 4, height: 40, borderWidth: 0 }}
           buttonColor={
             selectedTab === "daily" ? themeColors.tint : themeColors.card
           }
@@ -153,7 +119,7 @@ export default function HabitScreen() {
         <Button
           mode={selectedTab === "all" ? "contained" : "outlined"}
           onPress={() => setSelectedTab("all")}
-          style={{ flex: 1, marginLeft: 4, height: 40 }}
+          style={{ flex: 1, marginLeft: 4, height: 40, borderWidth: 0}}
           buttonColor={
             selectedTab === "all" ? themeColors.tint : themeColors.card
           }
@@ -181,8 +147,6 @@ export default function HabitScreen() {
                 styles.habitCard,
                 {
                   backgroundColor: themeColors.card,
-                  borderColor: themeColors.border,
-                  borderWidth: 1,
                   shadowColor: themeColors.tint,
                 },
               ]}
@@ -209,7 +173,7 @@ export default function HabitScreen() {
                   />
                 )}
                 style={{
-                  backgroundColor: themeColors.header,
+                  backgroundColor: themeColors.cardHeader,
                   borderTopLeftRadius: 10,
                   borderTopRightRadius: 10,
                   minHeight: 36,
@@ -232,7 +196,10 @@ export default function HabitScreen() {
                       marginRight: 8,
                     }}
                   />
-                  <IconButton
+                  
+                </View>
+                <View style={styles.habitFrequency}>
+                <IconButton
                     icon={
                       isCompletedToday ? "check-circle" : "check-circle-outline"
                     }
@@ -243,10 +210,9 @@ export default function HabitScreen() {
                     }
                     disabled={isCompletedToday}
                     onPress={() => handleComplete(item.id)}
-                    size={24}
-                    style={{ margin: 0 }}
+                    size={36}
                   />
-                </View>
+                  </View>
               </Card.Content>
             </Card>
           );
@@ -292,8 +258,6 @@ const styles = StyleSheet.create({
   },
   habitCard: {
   borderRadius: 10,
-  paddingVertical: 8,
-  paddingHorizontal: 8,
   marginBottom: 12,
   elevation: 2,
   shadowOffset: { width: 0, height: 1 },
@@ -303,7 +267,7 @@ const styles = StyleSheet.create({
    progressRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 8,
+    marginTop: 4,
   },
   habitHeader: {
     flexDirection: "row",
@@ -321,14 +285,9 @@ const styles = StyleSheet.create({
   },
   habitFrequency: {
     flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  dayIndicator: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    justifyContent: "center",
-    alignItems: "center",
-    marginHorizontal: 1,
+    justifyContent: "flex-end",
+    backgroundColor: "transparent",
+    padding: 0,
+    margin: 0,
   },
 });

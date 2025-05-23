@@ -3,13 +3,14 @@ const tintColorDark = '#13351a';  // Even darker green accent for dark mode
 
 export default {
   light: {
-    text: '#142116',
+    text: '#f5f7f6',
     background: '#dbe5dd',
-    tint: tintColorLight,
+    tint: '#1b263b',
     tabIconDefault: '#7ca98b',
     tabIconSelected: tintColorLight,
-    header: '#a3c9a8',
+    header: '#1b263b',
     card: '#b7cab3',
+    cardHeader: '#778da9',
     border: '#25532a',
     error: '#d90429',
     success: '#25532a',
@@ -17,7 +18,7 @@ export default {
     placeholder: '#6c757d',
     inputBackground: '#f5f7f6',
     disabled: '#bdbdbd',
-    navBackground: '#a3c9a8',
+    navBackground: '#1b263b',
   },
   dark: {
     text: '#b7cab3',
@@ -27,6 +28,7 @@ export default {
     tabIconSelected: tintColorDark,
     header: '#18351e',
     card: '#1e2d22',
+    cardHeader: '#669bbc',
     border: '#25532a',
     error: '#ff6f61',
     success: '#388e3c',
