@@ -13,7 +13,7 @@ import { useState } from "react";
 
 export default function HabitScreen() {
   const { habits, loading, setHabits } = useUserHabits();
-  const colorScheme = useColorScheme();
+  const colorScheme = useColorScheme() ?? 'light';
   const themeColors = Colors[colorScheme];
   const today = dayjs().format("YYYY-MM-DD");
   const [selectedTab, setSelectedTab] = useState<"daily" | "all">("daily");

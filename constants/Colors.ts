@@ -4,7 +4,8 @@ const tintColorDark = '#13351a';  // Even darker green accent for dark mode
 export default {
   light: {
     text: '#f5f7f6',
-    background: '#dbe5dd',
+    authbackground: '#778da9',
+    background: 'white',
     tint: '#1b263b',
     tabIconDefault: '#7ca98b',
     tabIconSelected: tintColorLight,
@@ -22,6 +23,7 @@ export default {
   },
   dark: {
     text: '#b7cab3',
+    authbackground: '#f5f7f6',
     background: '#142116',
     tint: tintColorDark,
     tabIconDefault: '#25532a',

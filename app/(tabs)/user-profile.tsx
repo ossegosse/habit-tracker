@@ -3,17 +3,19 @@ import LogoutButton from "@/components/LogoutButton";
 import {
   getWeeklyCompletionStats,
   getCurrentStreak,
-  getCompletionGraphData,
+  getOverallCompletionStats
 } from "@/utils/habitUtils";
 import { useUserHabits } from "@/hooks/useUserHabits";
 import { ProgressBar } from "react-native-paper";
 import StreakCircle from "@/components/StreakCircle";
-import CompletionPie from "@/components/CompletionPie";
+import CompletionPie from "@/components/CompletionCircle";
 
 
 export default function UserProfile() {
   const { habits, loading } = useUserHabits();
-  const stats = getWeeklyCompletionStats(habits);
+  const weeklyStats = getWeeklyCompletionStats(habits);
+  const overallStats = getOverallCompletionStats(habits);
+  const streak = habits.length > 0 ? getCurrentStreak(habits[0]) : 0;
 
 
   if (loading) {
@@ -24,29 +26,19 @@ export default function UserProfile() {
     );
   }
 
-  const streak = habits.length > 0 ? getCurrentStreak(habits[0]) : 0;
-
   return (
     <View style={styles.container}>
-      <Text>User</Text>
-      <Text>Habit Statistis</Text>
-      <View >
-      <Text>Daily Completion</Text>
-      <CompletionPie
-        completed={stats.totalCompleted}
-        total={stats.totalScheduled}
-      />
-  </View>
-      <Text>Weekly Completion: {stats.percent.toFixed(0)}%</Text>
-      <ProgressBar
-        progress={stats.percent / 100}
-        style={{ width: 200, marginVertical: 16 }}
-      />
-      <Text>
-        Completed: {stats.totalCompleted} / {stats.totalScheduled}
-      </Text>
-      <Text>Current Streak (first habit): {streak} days</Text>
+      <Text style={{ fontWeight: "bold", fontSize: 18 }}>Weekly Progress</Text>
+      <CompletionPie completed={weeklyStats.totalCompleted} total={weeklyStats.totalScheduled} />
+      <Text>Weekly Completion: {weeklyStats.percent.toFixed(0)}%</Text>
+
+      <Text style={{ fontWeight: "bold", fontSize: 18, marginTop: 24 }}>Overall Progress</Text>
+      <CompletionPie completed={overallStats.totalCompleted} total={overallStats.totalScheduled} />
+      <Text>Overall Completion: {overallStats.percent.toFixed(0)}%</Text>
+
+      <Text style={{ fontWeight: "bold", fontSize: 18, marginTop: 24 }}>Current Streak</Text>
       <StreakCircle streak={streak} goal={7} />
+
       <LogoutButton />
     </View>
   );

@@ -87,3 +87,18 @@ export function getCompletionGraphData(habits: Habit[], days: number = 7) {
 
   return data;
 }
+
+// Calculates the completion percentage for overall habit completions.
+export function getOverallCompletionStats(habits: Habit[]) {
+  let totalScheduled = 0;
+  let totalCompleted = 0;
+
+  habits.forEach(habit => {
+    totalScheduled += habit.scheduledDates?.length ?? 0;
+    totalCompleted += habit.completions?.length ?? 0;
+  });
+
+  const percent = totalScheduled === 0 ? 0 : (totalCompleted / totalScheduled) * 100;
+
+  return { totalScheduled, totalCompleted, percent };
+}
