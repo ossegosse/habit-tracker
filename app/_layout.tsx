@@ -13,11 +13,6 @@ import { useColorScheme } from "@/components/useColorScheme";
 import { AuthProvider } from "@/services/auth-provider";
 import { Provider as PaperProvider, MD3LightTheme as PaperLightTheme, MD3DarkTheme as PaperDarkTheme } from 'react-native-paper';
 
-export {
-  // Catch any errors thrown by the Layout component.
-  ErrorBoundary,
-} from "expo-router";
-
 export const unstable_settings = {
   // Ensure that reloading on `/modal` keeps a back button present.
   initialRouteName: "(tabs)",
@@ -62,6 +57,7 @@ function RootLayoutNav() {
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="create-habit-modal" options={{ presentation: "modal", headerShown: false}} />
+          <Stack.Screen name="edit-habit-modal" options={{ presentation: "modal", headerShown: false}} />
           <Stack.Screen 
             name="auth/login" 
             options={{ 
@@ -74,11 +70,11 @@ function RootLayoutNav() {
             options={{ 
               headerShown: false,
               presentation: "fullScreenModal" 
-            }} 
+            }}
           />
-        </Stack>
-      </ThemeProvider>
-      </PaperProvider>
-    </AuthProvider>
+      </Stack>
+    </ThemeProvider>
+    </PaperProvider>
+  </AuthProvider>
   );
 }

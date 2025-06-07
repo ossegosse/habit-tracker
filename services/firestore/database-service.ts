@@ -20,8 +20,10 @@ export type Habit = {
     title: string;
     description: string;
     scheduledDates?: string[];
+    scheduledDays?: string[]; // Days of week: ['monday', 'tuesday', etc.]
     timers?: { start: string; end: string; intervalMinutes: number };
     createdAt?: Timestamp;
+    updatedAt?: Timestamp; // Track when habit was last modified
     userId?: string;
     category: string;
     icon: ComponentProps<typeof Ionicons>["name"];
@@ -59,6 +61,21 @@ export const completeHabit = async (habitId: string, date: string) => {
     }
 };
 
+// Marks a habit as uncompleted (removes completion for a specific date)
+export const uncompleteHabit = async (habitId: string, date: string) => {
+    const habitRef = doc(db, 'habits', habitId);
+    const habitDoc = await getDoc(habitRef);
+
+    if (!habitDoc.exists()) throw new Error('Habit not found');
+
+    const data = habitDoc.data();
+    const completions: { date: string; time?: string }[] = data.completions || [];
+
+    // Remove the completion for the specific date
+    const updatedCompletions = completions.filter(c => c.date !== date);
+    await updateDoc(habitRef, { completions: updatedCompletions });
+};
+
 // Get all habits for the current user
 export const getUserHabits = async (): Promise<Habit[]> => {
     const user = auth.currentUser;
@@ -91,7 +108,10 @@ export const getHabit = async (habitId: string): Promise<Habit | null> => {
 // Update a habit
 export const updateHabit = async (habitId: string, habitData: Partial<Habit>) => {
     const habitRef = doc(db, 'habits', habitId);
-    return await updateDoc(habitRef, habitData);
+    return await updateDoc(habitRef, {
+        ...habitData,
+        updatedAt: Timestamp.now(),
+    });
 }
 
 // Delete a habit

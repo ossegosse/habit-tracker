@@ -1,15 +1,16 @@
-import { ActivityIndicator, Alert, FlatList, StyleSheet } from "react-native";
+import { ActivityIndicator, Alert, FlatList, StyleSheet, TouchableOpacity } from "react-native";
 import { Text, View } from "@/components/Themed";
-import { Link } from "expo-router";
-import { Habit, deleteHabit, completeHabit } from "@/services/firestore/database-service";
+import { Link, router } from "expo-router";
+import { Habit, deleteHabit, completeHabit, uncompleteHabit } from "@/services/firestore/database-service";
 import { useUserHabits } from "@/hooks/useUserHabits";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { Card, Text as PaperText, IconButton, ProgressBar, Button } from "react-native-paper";
+import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
+import { Button } from "react-native-paper";
 import Colors from "@/constants/Colors";
 import { useColorScheme } from "@/components/useColorScheme";
 import dayjs from "dayjs";
-import { getProgress } from "@/utils/habitUtils";
 import { useState } from "react";
+import HabitCard from "@/components/HabitCard";
+import { NotificationService } from "@/services/notification-service";
 
 export default function HabitScreen() {
   const { habits, loading, setHabits } = useUserHabits();
@@ -17,31 +18,121 @@ export default function HabitScreen() {
   const themeColors = Colors[colorScheme];
   const today = dayjs().format("YYYY-MM-DD");
   const [selectedTab, setSelectedTab] = useState<"daily" | "all">("daily");
+  
+  const tabs = [
+    { key: "daily", label: "Today" },
+    { key: "all", label: "All Habits" }
+  ];
+  
   const filteredHabits =
     selectedTab === "daily"
-      ? habits.filter((habit) => habit.scheduledDates?.includes(today))
+      ? habits.filter((habit) => {
+          // Check if habit is scheduled for today
+          const todayDayOfWeek = dayjs().format('dddd').toLowerCase(); // 'monday', 'tuesday', etc.
+          
+          // For weekly habits, check if today's day is in scheduledDays
+          if (habit.scheduledDays && habit.scheduledDays.length > 0) {
+            return habit.scheduledDays.includes(todayDayOfWeek);
+          }
+          
+          // For habits with specific dates, check scheduledDates
+          if (habit.scheduledDates && habit.scheduledDates.length > 0) {
+            return habit.scheduledDates.includes(today);
+          }
+          
+          // For daily habits without specific scheduling, show every day
+          return true;
+        })
       : habits;
 
-  const handleComplete = async (habitId: string) => {
+  const handleComplete = async (habitId: string, specificDate?: string) => {
     try {
-      await completeHabit(habitId, today);
-      setHabits((prev) =>
-      prev.map((habit) =>
-        habit.id === habitId
-          ? {
-              ...habit,
-              completions: [
-                ...(habit.completions ?? []),
-                { date: today },
-              ],
-            }
-          : habit
-      )
-    );
+      const dateToUse = specificDate || today;
+      const habit = habits.find(h => h.id === habitId);
+      const isAlreadyCompleted = habit?.completions?.some(c => c.date === dateToUse);
+      
+      if (isAlreadyCompleted) {
+        // Uncomplete the habit
+        await uncompleteHabit(habitId, dateToUse);
+        
+        // Update local state
+        const updatedHabits = habits.map((habit) =>
+          habit.id === habitId
+            ? {
+                ...habit,
+                completions: (habit.completions ?? []).filter(c => c.date !== dateToUse),
+              }
+            : habit
+        );
+        setHabits(updatedHabits);
+      } else {
+        // Complete the habit
+        await completeHabit(habitId, dateToUse);
+        
+        // Update local state
+        const updatedHabits = habits.map((habit) =>
+          habit.id === habitId
+            ? {
+                ...habit,
+                completions: [
+                  ...(habit.completions ?? []),
+                  { date: dateToUse },
+                ],
+              }
+            : habit
+        );
+        setHabits(updatedHabits);
+        
+        // Find the completed habit for notifications (only send on completion, not un-completion)
+        const completedHabit = updatedHabits.find(h => h.id === habitId);
+        if (completedHabit) {
+          // Calculate current streak
+          const currentStreak = calculateStreak(completedHabit);
+          
+          // Send completion encouragement
+          await NotificationService.sendCompletionNotification(
+            completedHabit.title
+          );
+          
+          // Check for milestone achievements
+          if (currentStreak > 0 && [7, 14, 30, 60, 100].includes(currentStreak)) {
+            await NotificationService.sendStreakMilestoneNotification(
+              completedHabit.title,
+              currentStreak
+            );
+          }
+        }
+      }
     } catch (error) {
-      console.error("Error completing habit:", error);
-      Alert.alert("Error", "Failed to mark habit as complete.");
+      console.error("Error updating habit completion:", error);
+      Alert.alert("Error", "Failed to update habit completion.");
     }
+  };
+
+  // Helper function to calculate streak
+  const calculateStreak = (habit: Habit): number => {
+    if (!habit.completions || habit.completions.length === 0) return 0;
+    
+    const sortedCompletions = habit.completions
+      .map(c => dayjs(c.date))
+      .sort((a, b) => b.valueOf() - a.valueOf());
+    
+    let streak = 0;
+    let currentDate = dayjs();
+    
+    for (const completion of sortedCompletions) {
+      if (completion.isSame(currentDate, 'day')) {
+        streak++;
+        currentDate = currentDate.subtract(1, 'day');
+      } else if (completion.isSame(currentDate.add(1, 'day'), 'day')) {
+        // Skip if we're checking yesterday and today is already counted
+        continue;
+      } else {
+        break;
+      }
+    }
+    
+    return streak;
   };
 
   const handleDeleteHabit = async (habitId: string) => {
@@ -69,6 +160,10 @@ export default function HabitScreen() {
     ]);
   };
 
+  const handleEditHabit = (habitId: string) => {
+    router.push(`/edit-habit-modal?habitId=${habitId}`);
+  };
+
   if (loading) {
     return (
       <View style={styles.container}>
@@ -82,16 +177,26 @@ export default function HabitScreen() {
       <View
         style={[styles.centered, { backgroundColor: themeColors.background }]}
       >
-        <Text style={[styles.emptyText, { color: themeColors.placeholder }]}>
-          You don't have any habits yet.
-        </Text>
-        <Link href="/create-habit-modal" style={styles.createButton}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={[styles.headerTitle, { color: themeColors.text }]}>
+            My Habits
+          </Text>
+        </View>
+
+        <View style={styles.emptyStateContainer}>
           <MaterialCommunityIcons
-            name="plus-circle"
-            size={50}
-            color={themeColors.success}
+            name="format-list-bulleted"
+            size={80}
+            color={themeColors.placeholder}
           />
-        </Link>
+          <Text style={[styles.emptyTitle, { color: themeColors.text }]}>
+            Start Building Great Habits
+          </Text>
+          <Text style={[styles.emptyText, { color: themeColors.placeholder }]}>
+            Create your first habit to get started on your journey.
+          </Text>
+        </View>
       </View>
     );
   }
@@ -100,131 +205,50 @@ export default function HabitScreen() {
     <View
       style={[styles.container, { backgroundColor: themeColors.background }]}
     >
-      <View style={{ flexDirection: "row", marginBottom: 16 }}>
-        <Button
-          mode={selectedTab === "daily" ? "contained" : "outlined"}
-          onPress={() => setSelectedTab("daily")}
-          style={{ flex: 1, marginRight: 4, height: 40, borderWidth: 0 }}
-          buttonColor={
-            selectedTab === "daily" ? themeColors.tint : themeColors.card
-          }
-          textColor={
-            selectedTab === "daily"
-              ? themeColors.inputBackground
-              : themeColors.text
-          }
-        >
-          Today
-        </Button>
-        <Button
-          mode={selectedTab === "all" ? "contained" : "outlined"}
-          onPress={() => setSelectedTab("all")}
-          style={{ flex: 1, marginLeft: 4, height: 40, borderWidth: 0}}
-          buttonColor={
-            selectedTab === "all" ? themeColors.tint : themeColors.card
-          }
-          textColor={
-            selectedTab === "all"
-              ? themeColors.inputBackground
-              : themeColors.text
-          }
-        >
-          All Habits
-        </Button>
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={[styles.headerTitle, { color: themeColors.text }]}>
+          My Habits
+        </Text>
       </View>
+
+      {/* Simple Tab Filter */}
+      <View style={[styles.filterContainer, { backgroundColor: themeColors.inputBackground }]}>
+        {tabs.map((tab) => (
+          <TouchableOpacity
+            key={tab.key}
+            style={[
+              styles.filterTab,
+              selectedTab === tab.key && [styles.filterTabSelected, { backgroundColor: themeColors.tint }]
+            ]}
+            onPress={() => setSelectedTab(tab.key as "daily" | "all")}
+          >
+            <Text style={[
+              styles.filterTabText,
+              selectedTab === tab.key 
+                ? { color: 'white' }
+                : { color: themeColors.text }
+            ]}>
+              {tab.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
       <FlatList
         data={filteredHabits}
         keyExtractor={(item) => item.id || Math.random().toString()}
-        renderItem={({ item }) => {
-          const progress = getProgress(item);
-          const isCompletedToday = item.completions?.some(
-            (c) => c.date === today
-          );
-
-          return (
-            <Card
-              style={[
-                styles.habitCard,
-                {
-                  backgroundColor: themeColors.card,
-                  shadowColor: themeColors.tint,
-                },
-              ]}
-              elevation={2}
-              mode="elevated"
-            >
-              <Card.Title
-                title={item.title}
-                titleStyle={{ color: themeColors.text, fontWeight: "bold" }}
-                left={(props) => (
-                  <Ionicons
-                    name={item.icon}
-                    size={28}
-                    color={themeColors.tint}
-                    style={{ marginRight: 8 }}
-                  />
-                )}
-                right={(props) => (
-                  <IconButton
-                    {...props}
-                    icon="delete-outline"
-                    iconColor={themeColors.error}
-                    onPress={() => item.id && handleDeleteHabit(item.id)}
-                  />
-                )}
-                style={{
-                  backgroundColor: themeColors.cardHeader,
-                  borderTopLeftRadius: 10,
-                  borderTopRightRadius: 10,
-                  minHeight: 36,
-                }}
-              />
-              <Card.Content>
-                <PaperText style={{ marginBottom: 8, color: themeColors.text }}>
-                  {item.description}
-                </PaperText>
-                <View style={styles.progressRow}>
-                  <ProgressBar
-                    progress={progress}
-                    color={themeColors.success}
-                    style={{
-                      maxWidth: "100%",
-                      flex: 1,
-                      height: 8,
-                      borderRadius: 4,
-                      backgroundColor: themeColors.inputBackground,
-                      marginRight: 8,
-                    }}
-                  />
-                  
-                </View>
-                <View style={styles.habitFrequency}>
-                <IconButton
-                    icon={
-                      isCompletedToday ? "check-circle" : "check-circle-outline"
-                    }
-                    iconColor={
-                      isCompletedToday
-                        ? themeColors.success
-                        : themeColors.placeholder
-                    }
-                    disabled={isCompletedToday}
-                    onPress={() => handleComplete(item.id)}
-                    size={36}
-                  />
-                  </View>
-              </Card.Content>
-            </Card>
-          );
-        }}
+        renderItem={({ item }) => (
+          <HabitCard
+            habit={item}
+            onComplete={handleComplete}
+            onDelete={handleDeleteHabit}
+            onEdit={handleEditHabit}
+            themeColors={themeColors}
+          />
+        )}
+        showsVerticalScrollIndicator={false}
       />
-      <Link href="/create-habit-modal" style={styles.createButton}>
-        <MaterialCommunityIcons
-          name="plus-circle"
-          size={50}
-          color={themeColors.success}
-        />
-      </Link>
     </View>
   );
 }
@@ -252,42 +276,89 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 20,
   },
-  createButtonText: {
-    color: "white",
-    fontWeight: "bold",
+  // Header styles
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+    paddingHorizontal: 4,
   },
-  habitCard: {
-  borderRadius: 10,
-  marginBottom: 12,
-  elevation: 2,
-  shadowOffset: { width: 0, height: 1 },
-  shadowOpacity: 0.2,
-  shadowRadius: 1.41,
-},
-   progressRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 4,
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
   },
-  habitHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 8,
+  // Filter styles
+  filterContainer: {
+    flexDirection: 'row',
+    borderRadius: 12,
+    padding: 4,
+    marginBottom: 16,
   },
-  habitTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
+  filterTab: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
   },
-  habitDescription: {
-    fontSize: 14,
+  filterTabSelected: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  filterTabText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  // Empty state styles
+  emptyStateContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    flex: 1,
+    paddingHorizontal: 20,
+  },
+  emptyTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginTop: 20,
     marginBottom: 12,
+    textAlign: 'center',
   },
-  habitFrequency: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    backgroundColor: "transparent",
-    padding: 0,
-    margin: 0,
+  emptyButtons: {
+    gap: 12,
+    marginTop: 30,
+    width: '100%',
+    maxWidth: 280,
+  },
+  primaryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    gap: 8,
+  },
+  primaryButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  secondaryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    gap: 8,
+  },
+  secondaryButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
