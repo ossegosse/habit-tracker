@@ -8,7 +8,7 @@ import {
 } from "react-native";
 import { Text, View } from "@/components/Themed";
 import { addHabit } from "@/services/firestore/database-service";
-import { useState, ComponentProps, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import WeekDaySelector from "@/components/WeekDaySelector";
@@ -16,26 +16,8 @@ import Colors, { categoryColors } from "@/constants/Colors";
 import { useColorScheme } from "@/components/useColorScheme";
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { NotificationService } from "@/services/notification-service";
-
-const categories = [
-  "Health",
-  "Fitness",
-  "Productivity",
-  "Learning",
-  "Social",
-  "Other",
-];
-
-type IconName = ComponentProps<typeof Ionicons>["name"];
-
-const categoryIcons: { [key: string]: IconName } = {
-  Health: "heart",
-  Fitness: "barbell",
-  Productivity: "checkmark-circle",
-  Learning: "book",
-  Social: "people",
-  Other: "ellipsis-horizontal",
-};
+import { categories, categoryIcons } from "@/constants/HabitCategories";
+import { validateHabitTitle, validateCustomFrequency, validateTargetCount } from "@/utils/validation";
 
 export default function ModalScreen() {
   const colorScheme = useColorScheme() ?? 'light';
@@ -59,21 +41,42 @@ export default function ModalScreen() {
   const [hasTargetCount, setHasTargetCount] = useState(false);
 
   const handleCreateHabit = async () => {
-    if (!title) {
-      Alert.alert("Error", "Please enter a title for your habit");
+    // Enhanced validation
+    const titleValidation = validateHabitTitle(title);
+    if (!titleValidation.isValid) {
+      Alert.alert("Error", titleValidation.error);
       return;
     }
     
+    // Weekly schedule validation
     if (scheduleType === 'weekly' && selectedDays.length === 0) {
-      Alert.alert("Error", "Please select at least one day of the week");
+      Alert.alert("Error", "Please select at least one day for your habit");
       return;
+    }
+    
+    // Custom frequency validation
+    if (scheduleType === 'custom') {
+      const frequencyValidation = validateCustomFrequency(customFrequency);
+      if (!frequencyValidation.isValid) {
+        Alert.alert("Error", frequencyValidation.error);
+        return;
+      }
+    }
+    
+    // Validate target count
+    if (hasTargetCount) {
+      const targetValidation = validateTargetCount(targetCount);
+      if (!targetValidation.isValid) {
+        Alert.alert("Error", targetValidation.error);
+        return;
+      }
     }
     
     setIsLoading(true);
     try {
       const habitData = {
-        title,
-        description,
+        title: title.trim(),
+        description: description.trim(),
         category: selectedCategory,
         icon: categoryIcons[selectedCategory],
         scheduleType,

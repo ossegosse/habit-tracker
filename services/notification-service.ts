@@ -34,26 +34,45 @@ export class NotificationService {
   }
 
   static async scheduleHabitReminder(data: NotificationData): Promise<string[]> {
-    const hasPermission = await this.requestPermissions();
-    if (!hasPermission) {
-      throw new Error('Notification permissions not granted');
-    }
-
-    const notificationIds: string[] = [];
-    
-    if (data.scheduledDays) {
-      // Schedule for specific days of the week
-      for (const day of data.scheduledDays) {
-        const notificationId = await this.scheduleWeeklyNotification(data, day);
-        notificationIds.push(notificationId);
+    try {
+      const hasPermission = await this.requestPermissions();
+      if (!hasPermission) {
+        throw new Error('Notification permissions not granted');
       }
-    } else if (data.customFrequency && data.customUnit) {
-      // Schedule for custom frequency
-      const notificationId = await this.scheduleCustomNotification(data);
-      notificationIds.push(notificationId);
-    }
 
-    return notificationIds;
+      const notificationIds: string[] = [];
+      
+      if (data.scheduledDays && data.scheduledDays.length > 0) {
+        // Schedule for specific days of the week
+        for (const day of data.scheduledDays) {
+          try {
+            const notificationId = await this.scheduleWeeklyNotification(data, day);
+            notificationIds.push(notificationId);
+          } catch (dayError) {
+            console.error(`Failed to schedule notification for ${day}:`, dayError);
+            // Continue with other days even if one fails
+          }
+        }
+      } else if (data.customFrequency && data.customUnit) {
+        // Schedule for custom frequency
+        try {
+          const notificationId = await this.scheduleCustomNotification(data);
+          notificationIds.push(notificationId);
+        } catch (customError) {
+          console.error('Failed to schedule custom notification:', customError);
+          throw customError;
+        }
+      }
+
+      if (notificationIds.length === 0) {
+        throw new Error('Failed to schedule any notifications');
+      }
+
+      return notificationIds;
+    } catch (error) {
+      console.error('Error in scheduleHabitReminder:', error);
+      throw error;
+    }
   }
 
   private static async scheduleWeeklyNotification(
@@ -94,38 +113,33 @@ export class NotificationService {
 
   private static async scheduleCustomNotification(data: NotificationData): Promise<string> {
     const [hours, minutes] = data.reminderTime.split(':').map(Number);
-    let seconds = 0;
-
-    // Calculate interval in seconds
-    if (data.customUnit === 'days') {
-      seconds = data.customFrequency! * 24 * 60 * 60;
-    } else if (data.customUnit === 'weeks') {
-      seconds = data.customFrequency! * 7 * 24 * 60 * 60;
-    } else if (data.customUnit === 'months') {
-      seconds = data.customFrequency! * 30 * 24 * 60 * 60; // Approximate
-    }
-
-    // Schedule first notification for today at the specified time
+    
+    // Calculate next occurrence of the specified time
     const now = new Date();
-    const firstNotification = new Date();
-    firstNotification.setHours(hours, minutes, 0, 0);
+    const nextNotification = new Date();
+    nextNotification.setHours(hours, minutes, 0, 0);
     
     // If the time has passed today, schedule for tomorrow
-    if (firstNotification <= now) {
-      firstNotification.setDate(firstNotification.getDate() + 1);
+    if (nextNotification <= now) {
+      nextNotification.setDate(nextNotification.getDate() + 1);
     }
 
-    const trigger: Notifications.TimeIntervalTriggerInput = {
-      type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-      seconds,
-      repeats: true,
+    // For custom intervals, we'll use DATE trigger for the first notification
+    // and handle repeating through the app logic rather than notification system
+    const trigger: Notifications.DateTriggerInput = {
+      type: Notifications.SchedulableTriggerInputTypes.DATE,
+      date: nextNotification,
     };
 
     const notificationId = await Notifications.scheduleNotificationAsync({
       content: {
         title: "Habit Reminder 🎯",
         body: `Time to work on: ${data.habitTitle}`,
-        data: { habitId: data.habitId },
+        data: { 
+          habitId: data.habitId,
+          customFrequency: data.customFrequency,
+          customUnit: data.customUnit 
+        },
         sound: true,
       },
       trigger,

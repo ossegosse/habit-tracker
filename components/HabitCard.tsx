@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo, useMemo, useCallback } from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Card, Text as PaperText, IconButton } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,21 +7,38 @@ import { getProgress, getCurrentStreak } from '@/utils/habitUtils';
 import { categoryColors } from '@/constants/Colors';
 import dayjs from 'dayjs';
 
+type ThemeColors = {
+  background: string;
+  text: string;
+  tint: string;
+  card: string;
+  cardHeader: string;
+  inputBackground: string;
+  success: string;
+  error: string;
+  placeholder: string;
+};
+
 interface HabitCardProps {
   habit: Habit;
   onComplete: (id: string, specificDate?: string) => void;
   onDelete: (id: string) => void;
   onEdit: (id: string) => void;
-  themeColors: any;
+  themeColors: ThemeColors;
 }
 
-export default function HabitCard({ habit, onComplete, onDelete, onEdit, themeColors }: HabitCardProps) {
+const HabitCard = memo(({ habit, onComplete, onDelete, onEdit, themeColors }: HabitCardProps) => {
   const today = dayjs().format("YYYY-MM-DD");
-  const progress = getProgress(habit);
-  const isCompletedToday = habit.completions?.some((c) => c.date === today);
+  
+  // Memoize expensive calculations
+  const progress = useMemo(() => getProgress(habit), [habit.completions, habit.scheduledDays, habit.scheduledDates, habit.createdAt]);
+  const isCompletedToday = useMemo(() => 
+    habit.completions?.some((c) => c.date === today), 
+    [habit.completions, today]
+  );
 
-  // Get day abbreviations for the current week
-  const getWeekDays = () => {
+  // Get day abbreviations for the current week - memoized
+  const weekDays = useMemo(() => {
     const startOfWeek = dayjs().startOf('week');
     const days = [];
     for (let i = 0; i < 7; i++) {
@@ -36,9 +53,33 @@ export default function HabitCard({ habit, onComplete, onDelete, onEdit, themeCo
       });
     }
     return days;
-  };
+  }, [habit.completions]);
 
-  const weekDays = getWeekDays();
+  // Memoize callback handlers
+  const handleEdit = useCallback(() => {
+    if (habit.id) {
+      onEdit(habit.id);
+    } else {
+      console.warn('Habit ID is missing');
+    }
+  }, [habit.id, onEdit]);
+
+  const handleDelete = useCallback(() => {
+    if (habit.id) {
+      onDelete(habit.id);
+    } else {
+      console.warn('Habit ID is missing');
+    }
+  }, [habit.id, onDelete]);
+
+  const handleComplete = useCallback((specificDate?: string) => {
+    if (!habit.id) {
+      console.error('Cannot complete habit: Habit ID is missing');
+      return;
+    }
+    onComplete(habit.id, specificDate);
+  }, [habit.id, onComplete]);
+
   const hasScheduledDays = habit.scheduledDays && habit.scheduledDays.length > 0;
 
   // If habit has specific scheduled days, show day-specific completion
@@ -68,9 +109,11 @@ export default function HabitCard({ habit, onComplete, onDelete, onEdit, themeCo
                 }
               ]}
               onPress={() => {
-                if (habit.id) {
-                  onComplete(habit.id, day.date);
+                if (!habit.id) {
+                  console.error('Cannot complete habit: Habit ID is missing');
+                  return;
                 }
+                onComplete(habit.id, day.date);
               }}
             >
               <PaperText style={[
@@ -122,13 +165,13 @@ export default function HabitCard({ habit, onComplete, onDelete, onEdit, themeCo
               {...props}
               icon="pencil-outline"
               iconColor={themeColors.tint}
-              onPress={() => habit.id && onEdit(habit.id)}
+              onPress={handleEdit}
             />
             <IconButton
               {...props}
               icon="delete-outline"
               iconColor={themeColors.error}
-              onPress={() => habit.id && onDelete(habit.id)}
+              onPress={handleDelete}
             />
           </View>
         )}
@@ -168,7 +211,7 @@ export default function HabitCard({ habit, onComplete, onDelete, onEdit, themeCo
               iconColor={
                 isCompletedToday ? themeColors.success : themeColors.placeholder
               }
-              onPress={() => habit.id && onComplete(habit.id)}
+              onPress={() => handleComplete()}
               size={36}
             />
           </View>
@@ -176,7 +219,9 @@ export default function HabitCard({ habit, onComplete, onDelete, onEdit, themeCo
       </Card.Content>
     </Card>
   );
-}
+});
+
+export default HabitCard;
 
 const styles = StyleSheet.create({
   habitCard: {

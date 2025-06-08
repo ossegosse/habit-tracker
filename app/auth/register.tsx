@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import {
-  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
@@ -12,7 +11,8 @@ import { router } from "expo-router";
 import { registerUser } from "@/services/firestore/auth-service";
 import Colors from '@/constants/Colors';
 import { useColorScheme } from "@/components/useColorScheme";
-
+import { createAuthStyles } from '@/constants/AuthStyles';
+import { validateEmail, validatePassword } from '@/utils/validation';
 
 export default function Register() {
   const [email, setEmail] = useState("");
@@ -21,65 +21,31 @@ export default function Register() {
   const [isLoading, setIsLoading] = useState(false);
   const colorScheme = useColorScheme() ?? 'light';
   const themeColors = Colors[colorScheme];
-
-  const styles = StyleSheet.create({
-        container: {
-          flex: 1,
-          padding: 20,
-          backgroundColor: themeColors.authbackground,
-        },
-        logo: {
-          width: 300,
-          height: 200,
-          alignSelf: 'center',
-          marginTop: 40,
-          color: themeColors.text,
-        },
-        title: {
-          fontSize: 24,
-          fontWeight: 'bold',
-          marginBottom: 20,
-          marginTop: 100,
-          textAlign: 'center',
-          color: themeColors.tint,
-        },
-        input: {
-          borderWidth: 1,
-          borderColor: themeColors.tint,
-          padding: 10,
-          fontSize: 16,
-          borderRadius: 6,
-          marginBottom: 12,
-          color: themeColors.tint,
-          backgroundColor: themeColors.background,
-        },
-        button: {
-          backgroundColor: themeColors.tint,
-          padding: 15,
-          borderRadius: 6,
-          alignItems: 'center',
-          marginTop: 10,
-        },
-        buttonText: {
-          color: 'white',
-          fontSize: 16,
-          fontWeight: 'bold',
-        },
-        link: {
-          color: themeColors.tint,
-          textAlign: 'center',
-          marginTop: 20,
-        }
-      });
+  const styles = createAuthStyles(themeColors);
 
   const handleRegister = async () => {
-    if (!email || !password || !confirmPassword) {
-      Alert.alert("Please fill in all fields");
+    // Validate email
+    const emailValidation = validateEmail(email);
+    if (!emailValidation.isValid) {
+      Alert.alert("Error", emailValidation.error);
+      return;
+    }
+
+    // Validate password
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.isValid) {
+      Alert.alert("Error", passwordValidation.error);
+      return;
+    }
+
+    // Validate confirm password
+    if (!confirmPassword) {
+      Alert.alert("Error", "Please confirm your password");
       return;
     }
 
     if (password !== confirmPassword) {
-      Alert.alert("Passwords do not match");
+      Alert.alert("Error", "Passwords do not match");
       return;
     }
 
@@ -144,45 +110,3 @@ export default function Register() {
     </View>
   );
 }
-
-/* const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    justifyContent: 'center',
-    color: 'green',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    textAlign: 'center',
-    color: 'white',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    padding: 10,
-    fontSize: 16,
-    borderRadius: 6,
-    marginBottom: 12,
-    color: 'white',
-  },
-  button: {
-    backgroundColor: 'green',
-    padding: 15,
-    borderRadius: 6,
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  buttonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  link: {
-    color: 'green',
-    textAlign: 'center',
-    marginTop: 20,
-  }
-}); */

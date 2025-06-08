@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { router } from 'expo-router';
-import { StyleSheet, Text, TextInput, TouchableOpacity, Alert, Image, ScrollView, } from 'react-native';
+import { Text, TextInput, TouchableOpacity, Alert, Image, ScrollView, } from 'react-native';
 import { loginUser } from "@/services/firestore/auth-service";
 import Colors from '@/constants/Colors';
 import { useColorScheme } from "@/components/useColorScheme";
+import { createAuthStyles } from '@/constants/AuthStyles';
+import { validateEmail, validatePassword } from '@/utils/validation';
 
 export default function Login() {
     const [email, setEmail] = useState('');
@@ -11,60 +13,20 @@ export default function Login() {
     const [isLoading, setIsLoading] = useState(false);
     const colorScheme = useColorScheme() ?? 'light';
     const themeColors = Colors[colorScheme];
-
-    const styles = StyleSheet.create({
-      container: {
-        flex: 1,
-        padding: 20,
-        backgroundColor: themeColors.authbackground,
-      },
-      logo: {
-        width: 300,
-        height: 200,
-        alignSelf: 'center',
-        marginTop: 40,
-        color: themeColors.text,
-      },
-      title: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        marginBottom: 20,
-        marginTop: 100,
-        textAlign: 'center',
-        color: themeColors.tint,
-      },
-      input: {
-        borderWidth: 1,
-        borderColor: themeColors.tint,
-        padding: 10,
-        fontSize: 16,
-        borderRadius: 6,
-        marginBottom: 12,
-        color: themeColors.tint,
-        backgroundColor: themeColors.background,
-      },
-      button: {
-        backgroundColor: themeColors.tint,
-        padding: 15,
-        borderRadius: 6,
-        alignItems: 'center',
-        marginTop: 10,
-      },
-      buttonText: {
-        color: 'white',
-        fontSize: 16,
-        fontWeight: 'bold',
-      },
-      link: {
-        color: themeColors.tint,
-        textAlign: 'center',
-        marginTop: 20,
-      }
-    });
+    const styles = createAuthStyles(themeColors);
 
     const handleLogin = async () => {
-        if (!email || !password) {
-            alert('Please fill in all fields');
+        // Validate email
+        const emailValidation = validateEmail(email);
+        if (!emailValidation.isValid) {
+            Alert.alert('Error', emailValidation.error);
+            return;
+        }
+
+        // Validate password
+        const passwordValidation = validatePassword(password);
+        if (!passwordValidation.isValid) {
+            Alert.alert('Error', passwordValidation.error);
             return;
         }
 
@@ -73,7 +35,7 @@ export default function Login() {
             await loginUser(email, password);
             router.replace('/(tabs)');
         } catch (error: any) {
-            Alert.alert('Login Failed', error.message)
+            Alert.alert('Login Failed', error.message);
         } finally {
             setIsLoading(false);
         }

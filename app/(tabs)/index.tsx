@@ -1,35 +1,35 @@
 import { ActivityIndicator, Alert, FlatList, StyleSheet, TouchableOpacity } from "react-native";
 import { Text, View } from "@/components/Themed";
-import { Link, router } from "expo-router";
+import { router } from "expo-router";
 import { Habit, deleteHabit, completeHabit, uncompleteHabit } from "@/services/firestore/database-service";
 import { useUserHabits } from "@/hooks/useUserHabits";
 import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
-import { Button } from "react-native-paper";
 import Colors from "@/constants/Colors";
 import { useColorScheme } from "@/components/useColorScheme";
 import dayjs from "dayjs";
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import HabitCard from "@/components/HabitCard";
 import { NotificationService } from "@/services/notification-service";
+import { getCurrentStreak } from "@/utils/habitUtils";
 
 export default function HabitScreen() {
-  const { habits, loading, setHabits } = useUserHabits();
+  const { habits, loading, error, setHabits } = useUserHabits();
   const colorScheme = useColorScheme() ?? 'light';
   const themeColors = Colors[colorScheme];
-  const today = dayjs().format("YYYY-MM-DD");
   const [selectedTab, setSelectedTab] = useState<"daily" | "all">("daily");
   
-  const tabs = [
+  // Memoize expensive calculations
+  const today = useMemo(() => dayjs().format("YYYY-MM-DD"), []);
+  const todayDayOfWeek = useMemo(() => dayjs().format('dddd').toLowerCase(), []);
+  
+  const tabs = useMemo(() => [
     { key: "daily", label: "Today" },
     { key: "all", label: "All Habits" }
-  ];
+  ], []);
   
-  const filteredHabits =
+  const filteredHabits = useMemo(() =>
     selectedTab === "daily"
       ? habits.filter((habit) => {
-          // Check if habit is scheduled for today
-          const todayDayOfWeek = dayjs().format('dddd').toLowerCase(); // 'monday', 'tuesday', etc.
-          
           // For weekly habits, check if today's day is in scheduledDays
           if (habit.scheduledDays && habit.scheduledDays.length > 0) {
             return habit.scheduledDays.includes(todayDayOfWeek);
@@ -43,7 +43,7 @@ export default function HabitScreen() {
           // For daily habits without specific scheduling, show every day
           return true;
         })
-      : habits;
+      : habits, [selectedTab, habits, todayDayOfWeek, today]);
 
   const handleComplete = async (habitId: string, specificDate?: string) => {
     try {
@@ -86,8 +86,8 @@ export default function HabitScreen() {
         // Find the completed habit for notifications (only send on completion, not un-completion)
         const completedHabit = updatedHabits.find(h => h.id === habitId);
         if (completedHabit) {
-          // Calculate current streak
-          const currentStreak = calculateStreak(completedHabit);
+          // Calculate current streak using the utility function
+          const currentStreak = getCurrentStreak(completedHabit);
           
           // Send completion encouragement
           await NotificationService.sendCompletionNotification(
@@ -107,32 +107,6 @@ export default function HabitScreen() {
       console.error("Error updating habit completion:", error);
       Alert.alert("Error", "Failed to update habit completion.");
     }
-  };
-
-  // Helper function to calculate streak
-  const calculateStreak = (habit: Habit): number => {
-    if (!habit.completions || habit.completions.length === 0) return 0;
-    
-    const sortedCompletions = habit.completions
-      .map(c => dayjs(c.date))
-      .sort((a, b) => b.valueOf() - a.valueOf());
-    
-    let streak = 0;
-    let currentDate = dayjs();
-    
-    for (const completion of sortedCompletions) {
-      if (completion.isSame(currentDate, 'day')) {
-        streak++;
-        currentDate = currentDate.subtract(1, 'day');
-      } else if (completion.isSame(currentDate.add(1, 'day'), 'day')) {
-        // Skip if we're checking yesterday and today is already counted
-        continue;
-      } else {
-        break;
-      }
-    }
-    
-    return streak;
   };
 
   const handleDeleteHabit = async (habitId: string) => {
@@ -166,8 +140,36 @@ export default function HabitScreen() {
 
   if (loading) {
     return (
-      <View style={styles.container}>
-        <ActivityIndicator />
+      <View style={[styles.container, { backgroundColor: themeColors.background }]}>
+        <ActivityIndicator size="large" color={themeColors.tint} />
+        <Text style={[{ marginTop: 16, color: themeColors.text }]}>Loading habits...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={[styles.centered, { backgroundColor: themeColors.background }]}>
+        <MaterialCommunityIcons
+          name="alert-circle-outline"
+          size={80}
+          color={themeColors.error}
+        />
+        <Text style={[styles.emptyTitle, { color: themeColors.text }]}>
+          Unable to Load Habits
+        </Text>
+        <Text style={[styles.emptyText, { color: themeColors.placeholder }]}>
+          {error}
+        </Text>
+        <TouchableOpacity
+          style={[styles.retryButton, { backgroundColor: themeColors.tint }]}
+          onPress={() => {
+            // The useUserHabits hook will automatically retry when the component re-renders
+            setSelectedTab(selectedTab); // Trigger a state update to force re-render
+          }}
+        >
+          <Text style={styles.retryButtonText}>Try Again</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -237,7 +239,7 @@ export default function HabitScreen() {
 
       <FlatList
         data={filteredHabits}
-        keyExtractor={(item) => item.id || Math.random().toString()}
+        keyExtractor={(item, index) => item.id || `habit-${index}`}
         renderItem={({ item }) => (
           <HabitCard
             habit={item}
@@ -248,6 +250,10 @@ export default function HabitScreen() {
           />
         )}
         showsVerticalScrollIndicator={false}
+        removeClippedSubviews={true}
+        initialNumToRender={10}
+        maxToRenderPerBatch={5}
+        windowSize={10}
       />
     </View>
   );
@@ -358,6 +364,17 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   secondaryButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  retryButton: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginTop: 16,
+  },
+  retryButtonText: {
+    color: 'white',
     fontSize: 16,
     fontWeight: '600',
   },

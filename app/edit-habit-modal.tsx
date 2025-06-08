@@ -8,33 +8,14 @@ import {
 } from "react-native";
 import { Text, View } from "@/components/Themed";
 import { updateHabit, getHabit, Habit } from "@/services/firestore/database-service";
-import { ComponentProps } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import { Calendar } from "react-native-calendars";
 import Colors, { categoryColors } from "@/constants/Colors";
 import { useColorScheme } from "@/components/useColorScheme";
 import WeekDaySelector from "@/components/WeekDaySelector";
-
-const categories = [
-  "Health",
-  "Fitness",
-  "Productivity",
-  "Learning",
-  "Social",
-  "Other",
-];
-
-type IconName = ComponentProps<typeof Ionicons>["name"];
-
-const categoryIcons: { [key: string]: IconName } = {
-  Health: "heart",
-  Fitness: "barbell",
-  Productivity: "checkmark-circle",
-  Learning: "book",
-  Social: "people",
-  Other: "ellipsis-horizontal",
-};
+import { categories, categoryIcons } from "@/constants/HabitCategories";
+import { validateHabitTitle } from "@/utils/validation";
 
 export default function EditHabitModal() {
   const { habitId } = useLocalSearchParams<{ habitId: string }>();
@@ -88,8 +69,10 @@ export default function EditHabitModal() {
   };
 
   const handleUpdateHabit = async () => {
-    if (!title) {
-      Alert.alert("Error", "Please enter a title for your habit");
+    // Validate habit title
+    const titleValidation = validateHabitTitle(title);
+    if (!titleValidation.isValid) {
+      Alert.alert("Error", titleValidation.error);
       return;
     }
     
@@ -106,8 +89,8 @@ export default function EditHabitModal() {
     setIsLoading(true);
     try {
       const updateData: Partial<Habit> = {
-        title,
-        description,
+        title: title.trim(),
+        description: description.trim(),
         category: selectedCategory,
         icon: categoryIcons[selectedCategory],
       };

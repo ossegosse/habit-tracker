@@ -6,12 +6,22 @@ dayjs.extend(isBetween);
 
 // Calculates progress for a single habit.
 export const getProgress = (habit: Habit) => {
+  // Add defensive checks for invalid input
+  if (!habit) return 0;
+  
   const completions = habit.completions ?? [];
   
   // For habits with scheduledDays (weekly habits)
   if (habit.scheduledDays && habit.scheduledDays.length > 0) {
     // Calculate total possible completions since creation
     const createdAt = habit.createdAt ? dayjs(habit.createdAt.toDate()) : dayjs();
+    
+    // Validate date
+    if (!createdAt.isValid()) {
+      console.warn('Invalid habit creation date:', habit.createdAt);
+      return 0;
+    }
+    
     const daysSinceCreation = dayjs().diff(createdAt, 'day') + 1;
     const weeksSinceCreation = Math.ceil(daysSinceCreation / 7);
     const totalPossibleCompletions = habit.scheduledDays.length * weeksSinceCreation;
@@ -20,7 +30,14 @@ export const getProgress = (habit: Habit) => {
     
     // Only count completions that match the current schedule
     const validCompletions = completions.filter(completion => {
+      if (!completion || !completion.date) return false;
+      
       const completionDate = dayjs(completion.date);
+      if (!completionDate.isValid()) {
+        console.warn('Invalid completion date:', completion.date);
+        return false;
+      }
+      
       const dayOfWeek = completionDate.format('dddd').toLowerCase();
       return habit.scheduledDays!.includes(dayOfWeek);
     });
@@ -31,9 +48,12 @@ export const getProgress = (habit: Habit) => {
   // For habits with specific scheduledDates
   const scheduledDates = habit.scheduledDates ?? [];
   if (scheduledDates.length === 0) return 0;
-  const completed = scheduledDates.filter(date =>
-    completions.some((c) => c.date === date)
-  ).length;
+  
+  const completed = scheduledDates.filter(date => {
+    if (!date) return false;
+    return completions.some((c) => c && c.date === date);
+  }).length;
+  
   const progress = completed / scheduledDates.length;
   return Math.max(0, Math.min(1, progress)); // Clamp between 0 and 1
 };
@@ -102,14 +122,29 @@ export function getWeeklyCompletionStats(habits: Habit[]) {
 
 // Calculates the current streak for a habit.
 export function getCurrentStreak(habit: Habit): number {
-  const completions = (habit.completions ?? [])
+  if (!habit || !habit.completions || !Array.isArray(habit.completions)) {
+    return 0;
+  }
+
+  const completions = habit.completions
+    .filter(completion => completion && completion.date) // Filter out invalid completions
     .map(c => c.date)
     .sort((a, b) => dayjs(b).diff(dayjs(a))); // Descending
+
+  if (completions.length === 0) {
+    return 0;
+  }
 
   let streak = 0;
   let current = dayjs();
 
   for (const date of completions) {
+    const completionDate = dayjs(date);
+    if (!completionDate.isValid()) {
+      console.warn(`Invalid completion date: ${date}`);
+      continue;
+    }
+
     if (current.format("YYYY-MM-DD") === date) {
       streak++;
       current = current.subtract(1, "day");

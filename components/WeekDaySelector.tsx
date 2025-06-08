@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { TouchableOpacity } from 'react-native';
 
@@ -19,13 +19,27 @@ const WEEKDAYS = [
 ];
 
 export default function WeekDaySelector({ selectedDays, onDaysChange, themeColors }: WeekDaySelectorProps) {
-  const toggleDay = (day: string) => {
+  // Memoize day toggle callback to prevent unnecessary re-renders
+  const toggleDay = useCallback((day: string) => {
     if (selectedDays.includes(day)) {
       onDaysChange(selectedDays.filter(d => d !== day));
     } else {
       onDaysChange([...selectedDays, day]);
     }
-  };
+  }, [selectedDays, onDaysChange]);
+
+  // Memoize quick selection callbacks for performance
+  const selectWeekdays = useCallback(() => {
+    onDaysChange(['monday', 'tuesday', 'wednesday', 'thursday', 'friday']);
+  }, [onDaysChange]);
+
+  const selectWeekends = useCallback(() => {
+    onDaysChange(['saturday', 'sunday']);
+  }, [onDaysChange]);
+
+  const selectAllDays = useCallback(() => {
+    onDaysChange(WEEKDAYS.map(d => d.key));
+  }, [onDaysChange]);
 
   return (
     <View style={styles.container}>
@@ -61,7 +75,7 @@ export default function WeekDaySelector({ selectedDays, onDaysChange, themeColor
       <View style={styles.quickSelectContainer}>
         <TouchableOpacity
           style={[styles.quickButton, { borderColor: themeColors.tint }]}
-          onPress={() => onDaysChange(['monday', 'tuesday', 'wednesday', 'thursday', 'friday'])}
+          onPress={selectWeekdays}
         >
           <Text style={[styles.quickButtonText, { color: themeColors.tint }]}>
             Weekdays
@@ -70,7 +84,7 @@ export default function WeekDaySelector({ selectedDays, onDaysChange, themeColor
         
         <TouchableOpacity
           style={[styles.quickButton, { borderColor: themeColors.tint }]}
-          onPress={() => onDaysChange(['saturday', 'sunday'])}
+          onPress={selectWeekends}
         >
           <Text style={[styles.quickButtonText, { color: themeColors.tint }]}>
             Weekends
@@ -79,7 +93,7 @@ export default function WeekDaySelector({ selectedDays, onDaysChange, themeColor
         
         <TouchableOpacity
           style={[styles.quickButton, { borderColor: themeColors.tint }]}
-          onPress={() => onDaysChange(WEEKDAYS.map(d => d.key))}
+          onPress={selectAllDays}
         >
           <Text style={[styles.quickButtonText, { color: themeColors.tint }]}>
             Every Day
