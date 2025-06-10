@@ -1,3 +1,13 @@
+/**
+ * WeekDaySelector - Interactive component for selecting days of the week.
+ * 
+ * Features:
+ * - Individual day selection with visual feedback
+ * - Quick selection options (weekdays, weekends, all)
+ * - Optimized with useCallback for performance
+ * - Theme-aware styling
+ */
+
 import React, { useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { TouchableOpacity } from 'react-native';
@@ -19,7 +29,7 @@ const WEEKDAYS = [
 ];
 
 export default function WeekDaySelector({ selectedDays, onDaysChange, themeColors }: WeekDaySelectorProps) {
-  // Memoize day toggle callback to prevent unnecessary re-renders
+  // Optimized day toggle handler
   const toggleDay = useCallback((day: string) => {
     if (selectedDays.includes(day)) {
       onDaysChange(selectedDays.filter(d => d !== day));
@@ -28,7 +38,7 @@ export default function WeekDaySelector({ selectedDays, onDaysChange, themeColor
     }
   }, [selectedDays, onDaysChange]);
 
-  // Memoize quick selection callbacks for performance
+  // Quick selection handlers for common patterns
   const selectWeekdays = useCallback(() => {
     onDaysChange(['monday', 'tuesday', 'wednesday', 'thursday', 'friday']);
   }, [onDaysChange]);

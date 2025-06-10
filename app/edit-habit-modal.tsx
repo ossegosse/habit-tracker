@@ -1,3 +1,13 @@
+/**
+ * Edit Habit Modal - Interface for modifying existing habits.
+ * 
+ * Features:
+ * - Load and display existing habit data
+ * - Same scheduling options as creation
+ * - Form validation and error handling
+ * - Seamless UI updates
+ */
+
 import React, { useState, useEffect } from "react";
 import {
   Alert,

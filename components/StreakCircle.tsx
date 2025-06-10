@@ -1,3 +1,13 @@
+/**
+ * StreakCircle - Visual indicator for habit streaks with goal tracking.
+ * 
+ * Features:
+ * - Circular progress toward streak goal
+ * - Fire emoji for motivation
+ * - Goal achievement celebration
+ * - Customizable goal (default: 7 days)
+ */
+
 import { View, Text } from 'react-native';
 import * as Progress from 'react-native-progress';
 

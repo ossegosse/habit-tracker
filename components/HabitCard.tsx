@@ -1,3 +1,13 @@
+/**
+ * HabitCard - Individual habit display component with completion tracking.
+ * 
+ * Features:
+ * - Progress visualization with completion bars
+ * - Day-specific completion for weekly habits
+ * - Edit/delete functionality
+ * - Optimized with React.memo for performance
+ */
+
 import React, { memo, useMemo, useCallback } from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Card, Text as PaperText, IconButton } from 'react-native-paper';
@@ -30,22 +40,22 @@ interface HabitCardProps {
 const HabitCard = memo(({ habit, onComplete, onDelete, onEdit, themeColors }: HabitCardProps) => {
   const today = dayjs().format("YYYY-MM-DD");
   
-  // Memoize expensive calculations
+  // Memoized calculations for performance optimization
   const progress = useMemo(() => getProgress(habit), [habit.completions, habit.scheduledDays, habit.scheduledDates, habit.createdAt]);
   const isCompletedToday = useMemo(() => 
     habit.completions?.some((c) => c.date === today), 
     [habit.completions, today]
   );
 
-  // Get day abbreviations for the current week - memoized
+  // Generate week view data for day-specific completion tracking
   const weekDays = useMemo(() => {
     const startOfWeek = dayjs().startOf('week');
     const days = [];
     for (let i = 0; i < 7; i++) {
       const date = startOfWeek.add(i, 'day');
       days.push({
-        dayAbbr: date.format('dd')[0], // M, T, W, T, F, S, S
-        fullDay: date.format('dddd').toLowerCase(), // monday, tuesday, etc.
+        dayAbbr: date.format('dd')[0], // Single letter: M, T, W, etc.
+        fullDay: date.format('dddd').toLowerCase(), // Full day name
         date: date.format('YYYY-MM-DD'),
         isToday: date.isSame(dayjs(), 'day'),
         isPast: date.isBefore(dayjs(), 'day'),
@@ -55,7 +65,7 @@ const HabitCard = memo(({ habit, onComplete, onDelete, onEdit, themeColors }: Ha
     return days;
   }, [habit.completions]);
 
-  // Memoize callback handlers
+  // Memoized event handlers to prevent unnecessary re-renders
   const handleEdit = useCallback(() => {
     if (habit.id) {
       onEdit(habit.id);
@@ -82,7 +92,10 @@ const HabitCard = memo(({ habit, onComplete, onDelete, onEdit, themeColors }: Ha
 
   const hasScheduledDays = habit.scheduledDays && habit.scheduledDays.length > 0;
 
-  // If habit has specific scheduled days, show day-specific completion
+  /**
+   * Renders day-specific completion buttons for weekly scheduled habits.
+   * Shows individual day buttons for each scheduled day of the week.
+   */
   const renderDaySpecificCompletion = () => {
     if (!hasScheduledDays) return null;
 

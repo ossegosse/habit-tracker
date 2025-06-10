@@ -1,3 +1,13 @@
+/**
+ * Validation utilities for form inputs and user data.
+ * Provides consistent validation logic across the application.
+ */
+
+/**
+ * Validates email address format and presence.
+ * @param email - Email string to validate
+ * @returns Validation result with error message if invalid
+ */
 export const validateEmail = (email: string): { isValid: boolean; error?: string } => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   
@@ -12,6 +22,11 @@ export const validateEmail = (email: string): { isValid: boolean; error?: string
   return { isValid: true };
 };
 
+/**
+ * Validates password strength and length requirements.
+ * @param password - Password string to validate
+ * @returns Validation result with error message if invalid
+ */
 export const validatePassword = (password: string): { isValid: boolean; error?: string } => {
   if (!password) {
     return { isValid: false, error: 'Password is required' };
@@ -24,6 +39,11 @@ export const validatePassword = (password: string): { isValid: boolean; error?: 
   return { isValid: true };
 };
 
+/**
+ * Validates habit title for length and content requirements.
+ * @param title - Habit title to validate
+ * @returns Validation result with error message if invalid
+ */
 export const validateHabitTitle = (title: string): { isValid: boolean; error?: string } => {
   if (!title.trim()) {
     return { isValid: false, error: 'Habit title is required' };
@@ -40,6 +60,11 @@ export const validateHabitTitle = (title: string): { isValid: boolean; error?: s
   return { isValid: true };
 };
 
+/**
+ * Validates custom frequency values for habit scheduling.
+ * @param frequency - Frequency number to validate
+ * @returns Validation result with error message if invalid
+ */
 export const validateCustomFrequency = (frequency: number): { isValid: boolean; error?: string } => {
   if (!frequency || frequency < 1) {
     return { isValid: false, error: 'Frequency must be at least 1' };
@@ -52,6 +77,11 @@ export const validateCustomFrequency = (frequency: number): { isValid: boolean; 
   return { isValid: true };
 };
 
+/**
+ * Validates target count values for habits with numerical goals.
+ * @param count - Target count to validate (optional)
+ * @returns Validation result with error message if invalid
+ */
 export const validateTargetCount = (count: number | undefined): { isValid: boolean; error?: string } => {
   if (count === undefined) {
     return { isValid: true };

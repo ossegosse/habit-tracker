@@ -1,3 +1,8 @@
+/**
+ * Database service for managing habit-related operations in Firestore.
+ * Provides CRUD operations for habits with proper authentication checks.
+ */
+
 import { ComponentProps } from 'react';
 import { db } from '../../config/firebase';
 import { auth } from '../../config/firebase';
@@ -15,22 +20,29 @@ import {
 } from 'firebase/firestore';
 import { Ionicons } from '@expo/vector-icons';
 
+/**
+ * Represents a habit in the system with all its properties and tracking data.
+ */
 export type Habit = {
     id?: string;
     title: string;
     description: string;
-    scheduledDates?: string[];
+    scheduledDates?: string[]; // Specific dates when habit should be performed
     scheduledDays?: string[]; // Days of week: ['monday', 'tuesday', etc.]
     timers?: { start: string; end: string; intervalMinutes: number };
     createdAt?: Timestamp;
-    updatedAt?: Timestamp; // Track when habit was last modified
+    updatedAt?: Timestamp;
     userId?: string;
     category: string;
     icon: ComponentProps<typeof Ionicons>["name"];
-    completions?: { date: string; time?: string }[];
+    completions?: { date: string; time?: string }[]; // Tracking completion history
 }
 
-// Add a new habit to the database
+/**
+ * Creates a new habit in the database.
+ * @param habitData - Habit data without id, userId, and createdAt (auto-generated)
+ * @returns Promise resolving to the created document reference
+ */
 export const addHabit = async (habitData: Omit<Habit, 'id' | 'userId' | 'createdAt'>) => {
     const user = auth.currentUser;
     if (!user) throw new Error('User not authenticated');
@@ -43,7 +55,12 @@ export const addHabit = async (habitData: Omit<Habit, 'id' | 'userId' | 'created
     });
 }
 
-// Marks a habit as completed
+/**
+ * Marks a habit as completed for a specific date.
+ * Prevents duplicate completions for the same date.
+ * @param habitId - The habit's document ID
+ * @param date - Date string in YYYY-MM-DD format
+ */
 export const completeHabit = async (habitId: string, date: string) => {
     const habitRef = doc(db, 'habits', habitId);
     const habitDoc = await getDoc(habitRef);
@@ -51,17 +68,19 @@ export const completeHabit = async (habitId: string, date: string) => {
     if (!habitDoc.exists()) throw new Error('Habit not found');
 
     const data = habitDoc.data();
-    // completions should be an array of objects
     const completions: { date: string; time?: string }[] = data.completions || [];
 
-    // Avoid duplicates
     if (!completions.some(c => c.date === date)) {
         completions.push({ date });
         await updateDoc(habitRef, { completions });
     }
 };
 
-// Marks a habit as uncompleted (removes completion for a specific date)
+/**
+ * Removes a completion entry for a specific date.
+ * @param habitId - The habit's document ID
+ * @param date - Date string in YYYY-MM-DD format
+ */
 export const uncompleteHabit = async (habitId: string, date: string) => {
     const habitRef = doc(db, 'habits', habitId);
     const habitDoc = await getDoc(habitRef);
@@ -71,12 +90,14 @@ export const uncompleteHabit = async (habitId: string, date: string) => {
     const data = habitDoc.data();
     const completions: { date: string; time?: string }[] = data.completions || [];
 
-    // Remove the completion for the specific date
     const updatedCompletions = completions.filter(c => c.date !== date);
     await updateDoc(habitRef, { completions: updatedCompletions });
 };
 
-// Get all habits for the current user
+/**
+ * Retrieves all habits belonging to the currently authenticated user.
+ * @returns Promise resolving to an array of user's habits
+ */
 export const getUserHabits = async (): Promise<Habit[]> => {
     const user = auth.currentUser;
     if (!user) throw new Error('User not authenticated');
@@ -90,7 +111,11 @@ export const getUserHabits = async (): Promise<Habit[]> => {
     })) as Habit[];
 }
 
-// Get a single habit
+/**
+ * Retrieves a single habit by its ID.
+ * @param habitId - The habit's document ID
+ * @returns Promise resolving to the habit or null if not found
+ */
 export const getHabit = async (habitId: string): Promise<Habit | null> => {
     const habitRef = doc(db, 'habits', habitId);
     const habitDoc = await getDoc(habitRef);
@@ -105,7 +130,12 @@ export const getHabit = async (habitId: string): Promise<Habit | null> => {
     return null;
 }
 
-// Update a habit
+/**
+ * Updates an existing habit with new data.
+ * Automatically sets the updatedAt timestamp.
+ * @param habitId - The habit's document ID
+ * @param habitData - Partial habit data to update
+ */
 export const updateHabit = async (habitId: string, habitData: Partial<Habit>) => {
     const habitRef = doc(db, 'habits', habitId);
     return await updateDoc(habitRef, {
@@ -114,7 +144,10 @@ export const updateHabit = async (habitId: string, habitData: Partial<Habit>) =>
     });
 }
 
-// Delete a habit
+/**
+ * Permanently deletes a habit from the database.
+ * @param habitId - The habit's document ID
+ */
 export const deleteHabit = async (habitId: string) => {
     return await deleteDoc(doc(db, 'habits', habitId));
 }

@@ -1,3 +1,14 @@
+/**
+ * Tab Layout - Bottom tab navigation with custom header and floating action button.
+ * 
+ * Features:
+ * - Bottom tab navigation for main app sections
+ * - Custom header with logo and logout functionality
+ * - Floating action button for creating new habits
+ * - Authentication-aware routing
+ * - Theme-aware tab icons and styling
+ */
+
 import React, { useEffect } from "react";
 import { router, Tabs } from "expo-router";
 import { View, TouchableOpacity, StyleSheet, Image } from "react-native";
@@ -14,7 +25,7 @@ export default function TabLayout() {
   const themeColors = Colors[colorScheme ?? "light"];
   const { user, isLoading } = useAuth();
 
-  // Custom header with logo
+  // Custom header with app logo
   const LogoHeader = () => (
     <View style={styles.logoContainer}>
       <Image
@@ -25,7 +36,7 @@ export default function TabLayout() {
     </View>
   );
 
-  // Custom logout button for header
+  // Logout button for header
   const LogoutIcon = () => (
     <TouchableOpacity
       style={styles.logoutButton}
@@ -82,14 +93,14 @@ export default function TabLayout() {
             paddingVertical: 4,
           },
           headerStyle: {
-            backgroundColor: '#1b263b', // Dark blue header background
+            backgroundColor: '#1b263b', 
           },
           headerTitleStyle: {
             fontWeight: 'bold',
             fontSize: 20,
-            color: '#ffffff', // White text for contrast
+            color: '#ffffff', 
           },
-          headerTintColor: '#ffffff', // White tint for header elements
+          headerTintColor: '#ffffff', 
           headerShown: useClientOnlyValue(false, true),
         }}
       >
@@ -106,20 +117,6 @@ export default function TabLayout() {
                 color={color}
               />
             ),
-          }}
-        />
-        <Tabs.Screen
-          name="create-habit"
-          options={{
-            title: "",
-            tabBarIcon: () => null, // We'll render the floating button separately
-            tabBarLabel: () => null,
-          }}
-          listeners={{
-            tabPress: (e) => {
-              e.preventDefault();
-              router.push('/create-habit-modal');
-            },
           }}
         />
         <Tabs.Screen
@@ -170,7 +167,7 @@ const styles = StyleSheet.create({
   headerLogo: {
     width: 206.25,
     height: 131.25,
-    tintColor: 'white', // Keep white logo for contrast against dark blue header
+    tintColor: 'white', 
   },
   logoutButton: {
     padding: 8,
@@ -178,7 +175,7 @@ const styles = StyleSheet.create({
   },
   floatingButton: {
     position: 'absolute',
-    bottom: 35, // Position it so it floats above the tab bar
+    bottom: 35, 
     alignSelf: 'center',
     width: 65,
     height: 65,

@@ -1,3 +1,8 @@
+/**
+ * Common reusable styles for consistent theming across components.
+ * Provides theme-aware style factories for forms, layouts, and UI elements.
+ */
+
 import { StyleSheet } from 'react-native';
 
 export const createCommonStyles = (themeColors: any) => StyleSheet.create({

@@ -1,3 +1,15 @@
+/**
+ * Custom hook for managing user habits with real-time Firestore synchronization.
+ * 
+ * Features:
+ * - Real-time habit data updates
+ * - Loading and error state management
+ * - Automatic cleanup of subscriptions
+ * - User authentication checks
+ * 
+ * @returns Object containing habits array, loading state, error state, and setter function
+ */
+
 import { useEffect, useState } from "react";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { Habit } from "@/services/firestore/database-service";

@@ -1,22 +1,28 @@
-import { Habit } from "@/services/firestore/database-service";
+/**
+ * Utility functions for habit calculations and statistics.
+ * Handles progress tracking, streak calculations, and completion stats.
+ */
 
+import { Habit } from "@/services/firestore/database-service";
 import dayjs from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
 dayjs.extend(isBetween);
 
-// Calculates progress for a single habit.
+/**
+ * Calculates the completion progress for a habit as a percentage (0-1).
+ * Handles both weekly scheduled habits and specific date-based habits.
+ * @param habit - The habit to calculate progress for
+ * @returns Progress value between 0 and 1
+ */
 export const getProgress = (habit: Habit) => {
-  // Add defensive checks for invalid input
   if (!habit) return 0;
   
   const completions = habit.completions ?? [];
   
-  // For habits with scheduledDays (weekly habits)
+  // Handle weekly scheduled habits
   if (habit.scheduledDays && habit.scheduledDays.length > 0) {
-    // Calculate total possible completions since creation
     const createdAt = habit.createdAt ? dayjs(habit.createdAt.toDate()) : dayjs();
     
-    // Validate date
     if (!createdAt.isValid()) {
       console.warn('Invalid habit creation date:', habit.createdAt);
       return 0;
@@ -45,7 +51,7 @@ export const getProgress = (habit: Habit) => {
     return Math.max(0, Math.min(1, validCompletions.length / totalPossibleCompletions));
   }
   
-  // For habits with specific scheduledDates
+  // Handle specific date-based habits
   const scheduledDates = habit.scheduledDates ?? [];
   if (scheduledDates.length === 0) return 0;
   
@@ -55,10 +61,15 @@ export const getProgress = (habit: Habit) => {
   }).length;
   
   const progress = completed / scheduledDates.length;
-  return Math.max(0, Math.min(1, progress)); // Clamp between 0 and 1
+  return Math.max(0, Math.min(1, progress));
 };
 
-// Calculates weekly completion stats for all habits.
+/**
+ * Calculates weekly completion statistics for all habits.
+ * Considers different habit types (weekly, specific dates, daily).
+ * @param habits - Array of habits to analyze
+ * @returns Object containing weekly completion stats
+ */
 export function getWeeklyCompletionStats(habits: Habit[]) {
   const startOfWeek = dayjs().startOf("week");
   const endOfWeek = dayjs().endOf("week");
@@ -67,9 +78,8 @@ export function getWeeklyCompletionStats(habits: Habit[]) {
   let totalCompleted = 0;
 
   habits.forEach(habit => {
-    // For habits with scheduledDays (weekly habits)
+    // Handle weekly scheduled habits
     if (habit.scheduledDays && habit.scheduledDays.length > 0) {
-      // Count how many of the scheduled days fall within this week
       const daysInWeek: string[] = [];
       for (let i = 0; i < 7; i++) {
         const day = startOfWeek.add(i, 'day');
@@ -80,13 +90,12 @@ export function getWeeklyCompletionStats(habits: Habit[]) {
       }
       totalScheduled += daysInWeek.length;
 
-      // Count completions for those specific days
       const completedThisWeek = (habit.completions ?? []).filter(c =>
         daysInWeek.includes(c.date)
       );
       totalCompleted += completedThisWeek.length;
     } 
-    // For habits with specific scheduledDates
+    // Handle specific date-based habits
     else if (habit.scheduledDates && habit.scheduledDates.length > 0) {
       const scheduledThisWeek = habit.scheduledDates.filter(date =>
         dayjs(date).isBetween(startOfWeek, endOfWeek, null, "[]")
@@ -99,9 +108,8 @@ export function getWeeklyCompletionStats(habits: Habit[]) {
       );
       totalCompleted += completedThisWeek.length;
     }
-    // For daily habits without specific scheduling
+    // Handle daily habits without specific scheduling
     else {
-      // Count all 7 days of the week as scheduled
       totalScheduled += 7;
       
       const completedThisWeek = (habit.completions ?? []).filter(c =>
@@ -120,16 +128,21 @@ export function getWeeklyCompletionStats(habits: Habit[]) {
   };
 }
 
-// Calculates the current streak for a habit.
+/**
+ * Calculates the current streak for a habit (consecutive days completed).
+ * Works backwards from today to find the longest current streak.
+ * @param habit - The habit to calculate streak for
+ * @returns Number of consecutive days the habit has been completed
+ */
 export function getCurrentStreak(habit: Habit): number {
   if (!habit || !habit.completions || !Array.isArray(habit.completions)) {
     return 0;
   }
 
   const completions = habit.completions
-    .filter(completion => completion && completion.date) // Filter out invalid completions
+    .filter(completion => completion && completion.date)
     .map(c => c.date)
-    .sort((a, b) => dayjs(b).diff(dayjs(a))); // Descending
+    .sort((a, b) => dayjs(b).diff(dayjs(a))); // Sort in descending order
 
   if (completions.length === 0) {
     return 0;
@@ -155,7 +168,13 @@ export function getCurrentStreak(habit: Habit): number {
   return streak;
 }
 
-// Calculates the completion graph data for a habit.
+/**
+ * Generates completion graph data for visualization charts.
+ * Creates daily completion vs scheduled data points.
+ * @param habits - Array of habits to analyze
+ * @param days - Number of days to include in the graph (default: 7)
+ * @returns Array of data points with date, completed, and scheduled counts
+ */
 export function getCompletionGraphData(habits: Habit[], days: number = 7) {
   const today = dayjs();
   const data = [];
@@ -168,7 +187,6 @@ export function getCompletionGraphData(habits: Habit[], days: number = 7) {
     let scheduled = 0;
 
     habits.forEach(habit => {
-      // Check if habit is scheduled for this day
       let isScheduled = false;
       
       if (habit.scheduledDays && habit.scheduledDays.length > 0) {
@@ -190,15 +208,19 @@ export function getCompletionGraphData(habits: Habit[], days: number = 7) {
   return data;
 }
 
-// Calculates the completion percentage for overall habit completions.
+/**
+ * Calculates overall completion statistics across all habits.
+ * Provides all-time completion percentages and totals.
+ * @param habits - Array of habits to analyze
+ * @returns Object containing overall completion stats
+ */
 export function getOverallCompletionStats(habits: Habit[]) {
   let totalScheduled = 0;
   let totalCompleted = 0;
 
   habits.forEach(habit => {
-    // For habits with scheduledDays (weekly habits)
+    // Handle weekly scheduled habits
     if (habit.scheduledDays && habit.scheduledDays.length > 0) {
-      // Calculate total possible completions since creation
       const createdAt = habit.createdAt ? dayjs(habit.createdAt.toDate()) : dayjs();
       const daysSinceCreation = dayjs().diff(createdAt, 'day') + 1;
       const weeksSinceCreation = Math.ceil(daysSinceCreation / 7);
@@ -206,7 +228,6 @@ export function getOverallCompletionStats(habits: Habit[]) {
       totalScheduled += habit.scheduledDays.length * weeksSinceCreation;
       
       // Only count completions that match the current schedule
-      // This prevents the 400% issue when someone edits their habit from 4 days to 1 day
       const validCompletions = (habit.completions ?? []).filter(completion => {
         const completionDate = dayjs(completion.date);
         const dayOfWeek = completionDate.format('dddd').toLowerCase();
@@ -215,18 +236,17 @@ export function getOverallCompletionStats(habits: Habit[]) {
       
       totalCompleted += validCompletions.length;
     }
-    // For habits with specific scheduledDates
+    // Handle specific date-based habits
     else if (habit.scheduledDates && habit.scheduledDates.length > 0) {
       totalScheduled += habit.scheduledDates.length;
       
-      // Only count completions that are in the scheduled dates
       const validCompletions = (habit.completions ?? []).filter(completion => 
         habit.scheduledDates!.includes(completion.date)
       );
       
       totalCompleted += validCompletions.length;
     }
-    // For daily habits without specific scheduling
+    // Handle daily habits without specific scheduling
     else {
       const createdAt = habit.createdAt ? dayjs(habit.createdAt.toDate()) : dayjs();
       const daysSinceCreation = dayjs().diff(createdAt, 'day') + 1;

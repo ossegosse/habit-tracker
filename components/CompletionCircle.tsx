@@ -1,3 +1,13 @@
+/**
+ * CompletionCircle - Visual progress indicator for habit completion.
+ * 
+ * Features:
+ * - Circular progress visualization
+ * - Completion ratio display
+ * - Checkmark icon for visual appeal
+ * - Handles edge cases (zero total)
+ */
+
 import { View, Text } from "react-native";
 import * as Progress from "react-native-progress";
 import { Ionicons } from "@expo/vector-icons";

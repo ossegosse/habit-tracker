@@ -1,3 +1,14 @@
+/**
+ * Statistics Screen - Analytics and progress tracking for habits.
+ * 
+ * Features:
+ * - Weekly and overall completion percentages
+ * - Visual progress circles
+ * - Category breakdown
+ * - Streak tracking
+ * - Real-time statistics updates
+ */
+
 import { StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { Text, View } from '@/components/Themed';
 import { useUserHabits } from "@/hooks/useUserHabits";

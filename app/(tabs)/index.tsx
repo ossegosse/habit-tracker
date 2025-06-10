@@ -1,3 +1,15 @@
+/**
+ * Main Habits Screen - Core functionality of the habit tracker app.
+ * 
+ * Features:
+ * - Real-time habit loading and display
+ * - Daily/All habits filtering
+ * - Habit completion/un-completion
+ * - Navigation to create/edit habits
+ * - Optimized FlatList rendering
+ * - Error handling and loading states
+ */
+
 import { ActivityIndicator, Alert, FlatList, StyleSheet, TouchableOpacity } from "react-native";
 import { Text, View } from "@/components/Themed";
 import { router } from "expo-router";
@@ -18,7 +30,7 @@ export default function HabitScreen() {
   const themeColors = Colors[colorScheme];
   const [selectedTab, setSelectedTab] = useState<"daily" | "all">("daily");
   
-  // Memoize expensive calculations
+  // Memoized date calculations for performance
   const today = useMemo(() => dayjs().format("YYYY-MM-DD"), []);
   const todayDayOfWeek = useMemo(() => dayjs().format('dddd').toLowerCase(), []);
   
@@ -27,24 +39,28 @@ export default function HabitScreen() {
     { key: "all", label: "All Habits" }
   ], []);
   
+  // Filter habits based on selected tab and scheduling
   const filteredHabits = useMemo(() =>
     selectedTab === "daily"
       ? habits.filter((habit) => {
-          // For weekly habits, check if today's day is in scheduledDays
+          // Check if habit is scheduled for today
           if (habit.scheduledDays && habit.scheduledDays.length > 0) {
             return habit.scheduledDays.includes(todayDayOfWeek);
           }
           
-          // For habits with specific dates, check scheduledDates
           if (habit.scheduledDates && habit.scheduledDates.length > 0) {
             return habit.scheduledDates.includes(today);
           }
           
-          // For daily habits without specific scheduling, show every day
+          // Daily habits without specific scheduling
           return true;
         })
       : habits, [selectedTab, habits, todayDayOfWeek, today]);
 
+  /**
+   * Handles habit completion/un-completion with optimistic UI updates.
+   * Sends notifications for streak achievements and completion encouragement.
+   */
   const handleComplete = async (habitId: string, specificDate?: string) => {
     try {
       const dateToUse = specificDate || today;
@@ -282,7 +298,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 20,
   },
-  // Header styles
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -294,7 +309,6 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: 'bold',
   },
-  // Filter styles
   filterContainer: {
     flexDirection: 'row',
     borderRadius: 12,
@@ -319,7 +333,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  // Empty state styles
   emptyStateContainer: {
     alignItems: 'center',
     justifyContent: 'center',

@@ -1,7 +1,16 @@
+/**
+ * NotificationService - Handles local notifications for habit reminders and achievements.
+ * 
+ * Features:
+ * - Habit reminder scheduling (daily, weekly, custom intervals)
+ * - Achievement notifications (streaks, milestones)
+ * - Permission management
+ * - Cross-platform notification support
+ */
+
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
-// Configure notification behavior
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
@@ -21,6 +30,10 @@ export interface NotificationData {
 
 export class NotificationService {
   
+  /**
+   * Requests notification permissions from the user.
+   * @returns Promise<boolean> - True if permissions granted
+   */
   static async requestPermissions(): Promise<boolean> {
     const { status: existingStatus } = await Notifications.getPermissionsAsync();
     let finalStatus = existingStatus;
@@ -33,6 +46,11 @@ export class NotificationService {
     return finalStatus === 'granted';
   }
 
+  /**
+   * Schedules habit reminder notifications based on the provided schedule.
+   * @param data - Notification data including habit info and schedule
+   * @returns Promise<string[]> - Array of scheduled notification IDs
+   */
   static async scheduleHabitReminder(data: NotificationData): Promise<string[]> {
     try {
       const hasPermission = await this.requestPermissions();
@@ -43,7 +61,6 @@ export class NotificationService {
       const notificationIds: string[] = [];
       
       if (data.scheduledDays && data.scheduledDays.length > 0) {
-        // Schedule for specific days of the week
         for (const day of data.scheduledDays) {
           try {
             const notificationId = await this.scheduleWeeklyNotification(data, day);

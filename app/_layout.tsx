@@ -1,3 +1,14 @@
+/**
+ * Root Layout - Main application layout with theme and navigation setup.
+ * 
+ * Features:
+ * - Font loading and splash screen management
+ * - Theme provider setup (light/dark mode)
+ * - Authentication context provider
+ * - Error boundary for crash handling
+ * - Navigation configuration
+ */
+
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import {
   DefaultTheme,
@@ -14,17 +25,12 @@ import { AuthProvider } from "@/services/auth-provider";
 import { Provider as PaperProvider, MD3LightTheme as PaperLightTheme, MD3DarkTheme as PaperDarkTheme } from 'react-native-paper';
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
-export {
-  // Catch any errors thrown by the Layout component.
-  ErrorBoundary,
-} from "expo-router";
+export { ErrorBoundary } from "expo-router";
 
 export const unstable_settings = {
-  // Ensure that reloading on `/modal` keeps a back button present.
   initialRouteName: "(tabs)",
 };
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {

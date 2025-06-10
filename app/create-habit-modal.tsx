@@ -1,3 +1,14 @@
+/**
+ * Create Habit Modal - Comprehensive habit creation interface.
+ * 
+ * Features:
+ * - Multiple scheduling options (weekly, custom frequency, specific dates)
+ * - Category selection with icons
+ * - Form validation
+ * - Time reminders and target counts
+ * - Modern UI with theme support
+ */
+
 import {
   Alert,
   ScrollView,
@@ -24,13 +35,14 @@ export default function ModalScreen() {
   const themeColors = Colors[colorScheme];
   const params = useLocalSearchParams();
   
+  // Basic habit information
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [selectedDays, setSelectedDays] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState("Health");
   const [isLoading, setIsLoading] = useState(false);
   
-  // Enhanced scheduling options
+  // Advanced scheduling options
   const [scheduleType, setScheduleType] = useState<'weekly' | 'custom' | 'specific'>('weekly');
   const [customFrequency, setCustomFrequency] = useState(1);
   const [customUnit, setCustomUnit] = useState<'days' | 'weeks' | 'months'>('days');
@@ -40,15 +52,18 @@ export default function ModalScreen() {
   const [targetCount, setTargetCount] = useState<number | undefined>(undefined);
   const [hasTargetCount, setHasTargetCount] = useState(false);
 
+  /**
+   * Handles habit creation with comprehensive validation.
+   * Schedules notifications if time reminders are enabled.
+   */
   const handleCreateHabit = async () => {
-    // Enhanced validation
     const titleValidation = validateHabitTitle(title);
     if (!titleValidation.isValid) {
       Alert.alert("Error", titleValidation.error);
       return;
     }
     
-    // Weekly schedule validation
+    // Validate scheduling based on type
     if (scheduleType === 'weekly' && selectedDays.length === 0) {
       Alert.alert("Error", "Please select at least one day for your habit");
       return;
@@ -458,7 +473,6 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   
-  // Schedule Type Selector
   scheduleTypeContainer: {
     flexDirection: 'row',
     borderRadius: 12,
@@ -487,7 +501,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   
-  // Custom Frequency
   customFrequencyContainer: {
     padding: 16,
     borderRadius: 12,
@@ -533,7 +546,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   
-  // Option Rows
   optionRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -569,7 +581,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   
-  // Create Button
   createButton: {
     position: "absolute",
     bottom: 20,
