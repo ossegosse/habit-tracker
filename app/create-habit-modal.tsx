@@ -19,7 +19,7 @@ import {
 } from "react-native";
 import { Text, View } from "@/components/Themed";
 import { addHabit } from "@/services/firestore/database-service";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import WeekDaySelector from "@/components/WeekDaySelector";
